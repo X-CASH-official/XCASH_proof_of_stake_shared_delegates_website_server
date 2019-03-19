@@ -27,7 +27,7 @@ The following table summarizes the tools and libraries required to build.
 | Git      		                       | any           | `git`                     |
 | MongoDB                                      | 4.0.3         |  install from binaries    |
 | MongoDB C Driver (includes BSON libary)      | 1.13.1        |  build from source        |
-| Libmicrohttpd                                | any           | `libmicrohttpd-dev`
+| Libmicrohttpd                                | any           | `libmicrohttpd-dev`       |
 
 
 
@@ -62,7 +62,7 @@ To add MongoDB to your PATH (replace "MongoDB_folder" with the location of the b
 
 ### Cloning the repository
 
-`$ git clone https://github.com/X-CASH-official/XCASH_proof_of_stake_website_server.git`
+`git clone https://github.com/X-CASH-official/XCASH_proof_of_stake_website_server.git`
 
 
 
@@ -126,7 +126,12 @@ The test will return the number of passed and failed test on the bottom of the c
 
 ## Running X-CASH Proof of Stake - Website Server
 
-Then you will need to run the xcash_proof_of_stake_website_server. Navigate to the folder that contains the binary, then run  
+Then you will need to run the xcash_proof_of_stake_website_server.
+You will need to copy the xcash_proof_of_stake_website_server to the html folder of your web server.
+
+Refer to the installation instructions at [X-CASH Proof of Stake - Website: NGINX Setup](https://github.com/X-CASH-official/XCASH_proof_of_stake_website#nginx-setup)
+
+Navigate to the folder that contains the binary, then run  
 `./xcash_proof_of_stake_website_server --fee FEE -- minimum_amount MINIMUM_AMOUNT`
 
 Replace FEE a fee (you canuse up to 6 decimal places)
