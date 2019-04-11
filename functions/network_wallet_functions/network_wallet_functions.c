@@ -77,8 +77,8 @@ int get_public_address(const int HTTP_SETTINGS)
 
 /*
 -----------------------------------------------------------------------------------------------------------
-Name: get_public_address
-Description: Gets the public address of your wallet
+Name: send_payment
+Description: Sends a payment
 Parameters:
   PUBLIC_ADDRESS - The public address to send the payment to
   TOTAL - The total amount for the payment (in atomic units)

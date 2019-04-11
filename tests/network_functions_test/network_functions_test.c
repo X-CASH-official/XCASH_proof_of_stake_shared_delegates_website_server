@@ -39,9 +39,23 @@ int send_wallet_http_request_test()
 {  
   // Variables
   char* data = (char*)calloc(BUFFER_SIZE,sizeof(char));
+  char* data2 = (char*)calloc(BUFFER_SIZE,sizeof(char));
+  char* data3 = (char*)calloc(BUFFER_SIZE,sizeof(char));
 
-  if (data == NULL)
+  if (data == NULL || data2 == NULL || data3 == NULL)
   {
+    if (data != NULL)
+    {
+      pointer_reset(data);
+    }
+    if (data2 != NULL)
+    {
+      pointer_reset(data2);
+    }
+    if (data3 != NULL)
+    {
+      pointer_reset(data3);
+    }
     return 0;
   }
 
@@ -86,9 +100,9 @@ int send_wallet_http_request_test()
     color_print("FAILED! Test for getting the current block height","red");
   }
 
-  // test the get_previous_block_reward function
+  // test the get_previous_block_information function
   memset(data,0,strnlen(data,BUFFER_SIZE));
-  if (get_previous_block_reward(data,0) == 1)
+  if (get_previous_block_information(data,data2,data3,0) == 1)
   {   
     color_print("PASSED! Test for getting the previous block hash","green");
     count_test++;

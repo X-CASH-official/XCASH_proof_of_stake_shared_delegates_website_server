@@ -90,6 +90,8 @@ int reset_variables_allocated_on_the_heap_test()
 
   // Variables
   char* process_id_file = (char*)calloc(BUFFER_SIZE,sizeof(char));
+  char* data2 = (char*)calloc(BUFFER_SIZE,sizeof(char));
+  char* data3 = (char*)calloc(BUFFER_SIZE,sizeof(char));
   char** data = (char**)calloc(5 * sizeof(char*),sizeof(char*));
   char** settings = (char**)calloc(5 * sizeof(char*),sizeof(char*));
   int previous_system_memory_usage = 0;
@@ -112,7 +114,7 @@ int reset_variables_allocated_on_the_heap_test()
   #define MESSAGE_SETTINGS "{\"message_settings\": \"XCASH_PROOF_OF_STAKE_DATA\"}"
   #define DATABASE_COLLECTION_STATISTICS_DATA "{\"username\":\"XCASH\",\"most_total_rounds_delegate_name\":\"DELEGATE_NAME\",\"most_total_rounds\":\"5\",\"best_block_verifier_online_percentage_delegate_name\":\"DELEGATE_NAME\",\"best_block_verifier_online_percentage\":\"10\",\"most_block_producer_total_rounds_delegate_name\":\"DELEGATE_NAME\",\"most_block_producer_total_rounds\":\"15\",\"most_VRF_node_public_and_private_key_total_rounds_delegate_name\":\"DELEGATE_NAME\",\"most_VRF_node_public_and_private_key_total_rounds\":\"5\",\"most_VRF_node_random_data_total_rounds_delegate_name\":\"DELEGATE_NAME\",\"most_VRF_node_random_data_total_rounds\":\"10\",\"total_XCASH_proof_of_stake_rounds\":\"15\",\"total_coins_in_proof_of_stake\":\"5\",\"total_circulating_supply_percentage_in_proof_of_stake\":\"10\"}"
   
-  if (process_id_file == NULL || data == NULL || settings == NULL)
+  if (process_id_file == NULL || data == NULL || data2 == NULL || data3 == NULL || settings == NULL)
   {
     if (process_id_file != NULL)
     {
@@ -121,6 +123,14 @@ int reset_variables_allocated_on_the_heap_test()
     if (data != NULL)
     {
       pointer_reset(data);
+    }
+    if (data2 != NULL)
+    {
+      pointer_reset(data2);
+    }
+    if (data3 != NULL)
+    {
+      pointer_reset(data3);
     }
     if (settings != NULL)
     {
@@ -1217,17 +1227,17 @@ int reset_variables_allocated_on_the_heap_test()
 
 
 
-  // get_previous_block_reward 
+  // get_previous_block_information 
   // read the current system memory usage
   if (settings2 == 1)
   {
     previous_system_memory_usage = get_program_memory_usage(process_id_file);
     for (count = 0; count <= 1000; count++)
     {
-      fprintf(stderr,"Current progress for get_previous_block_reward: %zu / 1000",count);
+      fprintf(stderr,"Current progress for get_previous_block_information: %zu / 1000",count);
       fprintf(stderr,"\r");
       memset(data_test,0,strnlen(data_test,BUFFER_SIZE));
-      get_previous_block_reward(data_test,0);
+      get_previous_block_information(data_test,data2,data3,0);
       if (count == 0)
       {    
         current_memory_usage = get_program_memory_usage(process_id_file) - previous_system_memory_usage;
@@ -1237,7 +1247,7 @@ int reset_variables_allocated_on_the_heap_test()
         current_system_memory_usage = get_program_memory_usage(process_id_file);
         if ((current_system_memory_usage - previous_system_memory_usage) > current_memory_usage * 9 && current_memory_usage > 0)
         {
-          color_print("FAILED! get_previous_block_reward has not reset all variables allocated on the heap","red");
+          color_print("FAILED! get_previous_block_information has not reset all variables allocated on the heap","red");
           settings2 = 0;
           break;
         }  
@@ -1247,7 +1257,7 @@ int reset_variables_allocated_on_the_heap_test()
         current_system_memory_usage = get_program_memory_usage(process_id_file);
         if ((current_system_memory_usage - previous_system_memory_usage) > current_memory_usage * 50 && current_memory_usage > 0)
         {
-          color_print("FAILED! get_previous_block_reward has not reset all variables allocated on the heap","red");
+          color_print("FAILED! get_previous_block_information has not reset all variables allocated on the heap","red");
           settings2 = 0;
           break;
         }  
@@ -1257,13 +1267,13 @@ int reset_variables_allocated_on_the_heap_test()
         current_system_memory_usage = get_program_memory_usage(process_id_file);
         if ((current_system_memory_usage - previous_system_memory_usage) > current_memory_usage * 100 && current_memory_usage > 0)
         {
-          color_print("FAILED! get_previous_block_reward has not reset all variables allocated on the heap","red");
+          color_print("FAILED! get_previous_block_information has not reset all variables allocated on the heap","red");
           settings2 = 0;
           break;
         }  
         else
         {
-          color_print("PASSED! get_previous_block_reward has reset all variables allocated on the heap","green");
+          color_print("PASSED! get_previous_block_information has reset all variables allocated on the heap","green");
           count_test++;
         }      
       } 

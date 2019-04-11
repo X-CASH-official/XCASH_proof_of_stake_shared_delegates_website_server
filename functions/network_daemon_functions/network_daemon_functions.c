@@ -77,7 +77,7 @@ Return: 0 if an error has occured, 1 if successfull
 -----------------------------------------------------------------------------------------------------------
 */
 
-int get_previous_block_information(char *block_hash, char *block_reward, char *block_date_and_time, const int MESSAGE_SETTINGS);
+int get_previous_block_information(char *block_hash, char *block_reward, char *block_date_and_time, const int MESSAGE_SETTINGS)
 {
   // Constants
   const char* HTTP_HEADERS[] = {"Content-Type: application/json","Accept: application/json"}; 
@@ -163,6 +163,8 @@ int get_previous_block_information(char *block_hash, char *block_reward, char *b
       
   pointer_reset_all;
   return 1;
+
+  #undef pointer_reset_all
 }
 
 
