@@ -4832,6 +4832,12 @@ int create_json_data_from_database_document_array_test()
   {
     database_data.item[count] = (char*)calloc(BUFFER_SIZE,sizeof(char));
     database_data.value[count] = (char*)calloc(BUFFER_SIZE,sizeof(char));
+
+    if (database_data.item[count] == NULL || database_data.value[count] == NULL)
+    {
+      color_print("Could not allocate the variables on the heap","red");
+      exit(0);
+    }
   }
 
   memcpy(database_data.item[0],"username",8);
@@ -4902,6 +4908,12 @@ int create_json_data_from_database_document_array_test()
     {
       database_multiple_documents_fields.item[count][counter] = (char*)calloc(BUFFER_SIZE,sizeof(char));
       database_multiple_documents_fields.value[count][counter] = (char*)calloc(BUFFER_SIZE,sizeof(char));
+    
+      if (database_multiple_documents_fields.item[count][counter] == NULL || database_multiple_documents_fields.value[count][counter] == NULL)
+      {
+        color_print("Could not allocate the variables on the heap","red");
+        exit(0);
+      }
     }
   }
 

@@ -118,7 +118,8 @@ int send_payment(const char* PUBLIC_ADDRESS, const char* TOTAL, char *tx_hash, c
     {
       pointer_reset(message);
     }
-    return 0;
+    color_print("Could not allocate the variables on the heap","red");
+    exit(0);
   }
 
   // create the message

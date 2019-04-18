@@ -84,7 +84,8 @@ int send_http_request(char *result, const char* HOST, const char* URL, const int
     {
       pointer_reset(message);
     }
-    return 0;
+    color_print("Could not allocate the variables on the heap","red");
+    exit(0);
   } 
 
   // create the HTTP request
@@ -424,7 +425,8 @@ int receive_data(const int SOCKET, char *message, const char* STRING, const int 
   // check if the memory needed was allocated on the heap successfully
   if (data == NULL)
   {
-    return 0;
+    color_print("Could not allocate the variables on the heap","red");
+    exit(0);
   } 
 
   memset(message, 0, strnlen(message,BUFFER_SIZE));  
@@ -494,7 +496,8 @@ int get_delegate_voting_information(const int SOCKET, char *message, const char*
   // check if the memory needed was allocated on the heap successfully
   if (data == NULL)
   {
-    return 0;
+    color_print("Could not allocate the variables on the heap","red");
+    exit(0);
   } 
 
   memset(message, 0, strnlen(message,BUFFER_SIZE));  

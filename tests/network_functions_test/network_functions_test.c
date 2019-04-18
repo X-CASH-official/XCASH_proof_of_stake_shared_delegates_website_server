@@ -56,7 +56,8 @@ int send_wallet_http_request_test()
     {
       pointer_reset(data3);
     }
-    return 0;
+    color_print("Could not allocate the variables on the heap","red");
+    exit(0);
   }
 
   // define macros

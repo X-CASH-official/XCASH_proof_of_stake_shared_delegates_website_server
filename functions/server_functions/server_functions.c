@@ -227,7 +227,8 @@ int get_statistics(char* result)
   // check if the memory needed was allocated on the heap successfully
   if (data == NULL)
   {
-    return 0;
+    color_print("Could not allocate the variables on the heap","red");
+    exit(0);
   }
 
   // check if there is any data in the database that matches the message

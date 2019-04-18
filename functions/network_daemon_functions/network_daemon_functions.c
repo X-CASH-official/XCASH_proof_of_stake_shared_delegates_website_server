@@ -105,7 +105,8 @@ int get_previous_block_information(char *block_hash, char *block_reward, char *b
     {
       pointer_reset(data2);
     } 
-    return 0;
+    color_print("Could not allocate the variables on the heap","red");
+    exit(0);
   }
 
   // get the current block height
@@ -210,7 +211,8 @@ int check_found_block(const int MESSAGE_SETTINGS)
     {
       pointer_reset(result);
     }
-    return 0;
+    color_print("Could not allocate the variables on the heap","red");
+    exit(0);
   }
 
   // get the current block height

@@ -111,7 +111,8 @@ void* block_height_timer_thread()
     {
       pointer_reset(block_height);
     }    
-    return 0;
+    color_print("Could not allocate the variables on the heap","red");
+    exit(0);
   }
 
   for (;;)
@@ -328,6 +329,12 @@ void* block_height_timer_thread()
       {
         database_data.item[count] = (char*)calloc(100,sizeof(char));
         database_data.value[count] = (char*)calloc(100,sizeof(char));
+
+        if (database_data.item[count] == NULL || database_data.value[count] == NULL)
+        {
+          color_print("Could not allocate the variables on the heap","red");
+          exit(0);
+        }
       }
       database_data.count = 0;
 
@@ -567,7 +574,8 @@ void* payment_timer_thread()
     {
       pointer_reset(payment_tx_key);
     }    
-    return 0;
+    color_print("Could not allocate the variables on the heap","red");
+    exit(0);
   }
 
   for (;;)
