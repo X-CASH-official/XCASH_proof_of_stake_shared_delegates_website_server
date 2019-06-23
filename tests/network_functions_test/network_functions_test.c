@@ -14,6 +14,7 @@
 #include "define_macros_functions.h"
 #include "network_daemon_functions.h"
 #include "network_functions.h"
+#include "network_security_functions.h"
 #include "network_wallet_functions.h"
 #include "string_functions.h"
 
@@ -29,55 +30,109 @@ Functions
 
 /*
 -----------------------------------------------------------------------------------------------------------
-Name: send_wallet_http_request_test
-Description: Test the send_http_request and other HTTP request wallet functions
-Return: The number of passed send_wallet_http_request test
+Name: network_daemon_test
+Description: Test the network_daemon functions
+Return: The number of passed network_daemon test
 -----------------------------------------------------------------------------------------------------------
 */
 
-int send_wallet_http_request_test()
+void network_daemon_test()
 {  
   // Variables
-  char* data = (char*)calloc(BUFFER_SIZE,sizeof(char));
-  char* data2 = (char*)calloc(BUFFER_SIZE,sizeof(char));
-  char* data3 = (char*)calloc(BUFFER_SIZE,sizeof(char));
+  size_t count;
 
-  if (data == NULL || data2 == NULL || data3 == NULL)
+  // reset the variables
+  memset(data_test,0,strnlen(data_test,BUFFER_SIZE));
+
+  // run the test
+
+  // test the get_current_block_height function
+  memset(data_test,0,strnlen(data_test,BUFFER_SIZE));
+  if (get_current_block_height(data_test,0) == 1)
+  {   
+    color_print("PASSED! Test for getting the current block height","green");
+    count_test++;
+  }
+  else
   {
-    if (data != NULL)
-    {
-      pointer_reset(data);
-    }
-    if (data2 != NULL)
-    {
-      pointer_reset(data2);
-    }
-    if (data3 != NULL)
-    {
-      pointer_reset(data3);
-    }
-    color_print("Could not allocate the variables on the heap","red");
-    exit(0);
+    color_print("FAILED! Test for getting the current block height","red");
   }
 
+  // test the get_previous_block_hash function
+  memset(data_test,0,strnlen(data_test,BUFFER_SIZE));
+  if (get_previous_block_hash(data_test,0) == 1)
+  {   
+    color_print("PASSED! Test for getting the previous block hash","green");
+    count_test++;
+  }
+  else
+  {
+    color_print("FAILED! Test for getting the previous block hash","red");
+  }
+}
+
+
+
+/*
+-----------------------------------------------------------------------------------------------------------
+Name: network_security_test
+Description: Test the network_security functions
+Return: The number of passed network_security test
+-----------------------------------------------------------------------------------------------------------
+*/
+
+void network_security_test()
+{  
   // define macros
-  #define SEND_WALLET_HTTP_REQUEST_TOTAL_TEST 4
   #define MESSAGE "{\r\n \"message_settings\": \"XCASH_PROOF_OF_STAKE_TEST_DATA\",\r\n}"
   
   // reset the variables
   memset(result_test,0,strnlen(result_test,BUFFER_SIZE));
   memset(data_test,0,strnlen(data_test,BUFFER_SIZE));
-  count_test = 0;
 
-  // write the start test message
-  color_print(TEST_OUTLINE,"blue");
-  printf("\033[1;34msend_wallet_http_request test - Total test: %d\033[0m\n",SEND_WALLET_HTTP_REQUEST_TOTAL_TEST);
-  color_print(TEST_OUTLINE,"blue");
-  printf("\n");
+  // create the message
+  memset(result_test,0,strnlen(result_test,BUFFER_SIZE));
+  memcpy(result_test,MESSAGE,strnlen(MESSAGE,BUFFER_SIZE));
 
-  // run the test
+  // test the sign_data functions
+  if (sign_data(result_test) == 1)
+  {   
+    color_print("PASSED! Test for sign data to send data securely","green");
+    count_test++;
+  }
+  else
+  {
+    color_print("FAILED! Test for sign data to send data securely","red");
+  }
+  
+  // test the verify_data functions
+  if (verify_data(result_test) == 1)
+  {   
+    color_print("PASSED! Test for verify data to receive data securely","green");
+    count_test++;
+  }
+  else
+  {
+    color_print("FAILED! Test for verify data to receive data securely","red");
+  }
+  #undef MESSAGE
+}
 
-  // test the send_http_request and get_public_address functions
+
+
+/*
+-----------------------------------------------------------------------------------------------------------
+Name: network_wallet_test
+Description: Test the network_wallet functions
+Return: The number of passed network_wallet test
+-----------------------------------------------------------------------------------------------------------
+*/
+
+void network_wallet_test()
+{ 
+  // define macros
+  
+  // test the get_public_address function
   memset(xcash_wallet_public_address,0,strnlen(xcash_wallet_public_address,BUFFER_SIZE));
   if (get_public_address(0) == 1)
   {   
@@ -88,48 +143,43 @@ int send_wallet_http_request_test()
   {
     color_print("FAILED! Test for sending an HTTP request and getting the public address of the opened X-CASH wallet","red");
   }
+}
 
-  // test the get_current_block_height function
-  memset(data,0,strnlen(data,BUFFER_SIZE));
-  if (get_current_block_height(data,0) == 1)
-  {   
-    color_print("PASSED! Test for getting the current block height","green");
-    count_test++;
-  }
-  else
-  {
-    color_print("FAILED! Test for getting the current block height","red");
-  }
 
-  // test the get_previous_block_information function
-  memset(data,0,strnlen(data,BUFFER_SIZE));
-  if (get_previous_block_information(data,data2,data3,0) == 1)
-  {   
-    color_print("PASSED! Test for getting the previous block hash","green");
-    count_test++;
-  }
-  else
-  {
-    color_print("FAILED! Test for getting the previous block hash","red");
-  }
 
-  // test the check_found_block function
-  if (check_found_block(0) > 0)
-  {   
-    color_print("PASSED! Test for checking if your wallet found the last block","green");
-    count_test++;
-  }
-  else
-  {
-    color_print("FAILED! Test for checking if your wallet found the last block","red");
-  }
+/*
+-----------------------------------------------------------------------------------------------------------
+Name: network_test
+Description: Runs all of the network test
+Return: The number of passed network test
+-----------------------------------------------------------------------------------------------------------
+*/
+
+int network_functions_test()
+{
+  // define macros
+  #define NETWORK_TOTAL_TEST 5
+
+  // reset the varaibles
+  count_test = 0;
+
+  // write the start test message
+  color_print(TEST_OUTLINE,"blue");
+  printf("\033[1;34mnetwork test - Total test: %d\033[0m\n",NETWORK_TOTAL_TEST);
+  color_print(TEST_OUTLINE,"blue");
+  printf("\n");
+
+  // run the test
+  network_daemon_test();
+  network_security_test();
+  network_wallet_test();
 
   // write the end test message
-  if (count_test == SEND_WALLET_HTTP_REQUEST_TOTAL_TEST)
+  if (count_test == NETWORK_TOTAL_TEST)
   {
     printf("\n");
     color_print(TEST_OUTLINE,"green");
-    printf("\033[1;32msend_wallet_http_request test - Passed test: %d, Failed test: 0\033[0m\n",SEND_WALLET_HTTP_REQUEST_TOTAL_TEST);
+    printf("\033[1;32mnetwork test - Passed test: %d, Failed test: 0\033[0m\n",NETWORK_TOTAL_TEST);
     color_print(TEST_OUTLINE,"green");
     printf("\n\n");
   }
@@ -137,13 +187,11 @@ int send_wallet_http_request_test()
   {
     printf("\n");
     color_print(TEST_OUTLINE,"red");
-    printf("\033[1;31msend_wallet_http_request test - Passed test: %d, Failed test: %d\033[0m\n",count_test,SEND_WALLET_HTTP_REQUEST_TOTAL_TEST-count_test);
+    printf("\033[1;31mnetwork test - Passed test: %d, Failed test: %d\033[0m\n",count_test,NETWORK_TOTAL_TEST-count_test);
     color_print(TEST_OUTLINE,"red");
     printf("\n\n");
-  } 
-  pointer_reset(data);
+  }
   return count_test;
 
-  #undef MESSAGE
-  #undef SEND_WALLET_HTTP_REQUEST_TOTAL_TEST
+  #undef NETWORK_TOTAL_TEST
 }

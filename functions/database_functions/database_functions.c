@@ -459,11 +459,11 @@ int read_document_all_fields_from_collection(const char* DATABASE, const char* C
   const bson_t* current_document;
 
   // Variables
-  mongoc_client_t* database_client_thread;
+  mongoc_client_t* database_client_thread = NULL;
   mongoc_collection_t* collection;
-  mongoc_cursor_t* document_settings;
+  mongoc_cursor_t* document_settings = NULL;
   bson_error_t error;
-  bson_t* document = NULL;  
+  bson_t* document = NULL; 
   char* message;
   char* data = (char*)calloc(BUFFER_SIZE,sizeof(char));
   int count = 0;
@@ -481,9 +481,9 @@ int read_document_all_fields_from_collection(const char* DATABASE, const char* C
   // check if the memory needed was allocated on the heap successfully
   if (data == NULL)
   {
-    color_print("Could not allocate the variables on the heap","red");
+    color_print("Could not allocate the memory needed on the heap","red");
     exit(0);
-  }
+  } 
 
    // check if we need to create a database connection, or use the global database connection
   if (THREAD_SETTINGS == 0)
@@ -551,21 +551,24 @@ Parameters:
     value[100][100] - The database document values
   DOCUMENT_COUNT_START - The document to start at when reading the data
   DOCUMENT_COUNT_TOTAL - The total amount of documents to read
+  DOCUMENT_OPTIONS - 1 to use the sort document option, 0 to not use the document option
+  DOCUMENT_OPTIONS_DATA - The item to sort the documents in the collection
   THREAD_SETTINGS - 1 to use a separate thread, otherwise 0
 Return: 0 if an error has occured, 1 if successfull
 -----------------------------------------------------------------------------------------------------------
 */
 
-int read_multiple_documents_all_fields_from_collection(const char* DATABASE, const char* COLLECTION, const char* DATA, struct database_multiple_documents_fields* result, const size_t DOCUMENT_COUNT_START, const size_t DOCUMENT_COUNT_TOTAL, const int THREAD_SETTINGS)
+int read_multiple_documents_all_fields_from_collection(const char* DATABASE, const char* COLLECTION, const char* DATA, struct database_multiple_documents_fields* result, const size_t DOCUMENT_COUNT_START, const size_t DOCUMENT_COUNT_TOTAL, const int DOCUMENT_OPTIONS, const char* DOCUMENT_OPTIONS_DATA, const int SETTINGS, const int THREAD_SETTINGS)
 {
   // Constants
   const bson_t* current_document;
 
   // Variables
-  mongoc_client_t* database_client_thread;
+  mongoc_client_t* database_client_thread = NULL;
   mongoc_collection_t* collection;
-  mongoc_cursor_t* document_settings;
+  mongoc_cursor_t* document_settings = NULL;
   bson_t* document = NULL;  
+  bson_t* document_options = NULL;
   char* message;
   char* data = (char*)calloc(BUFFER_SIZE,sizeof(char));
   size_t count = 1;
@@ -574,6 +577,7 @@ int read_multiple_documents_all_fields_from_collection(const char* DATABASE, con
   // define macros
   #define database_reset_all \
   bson_destroy(document); \
+  bson_destroy(document_options); \
   mongoc_cursor_destroy(document_settings); \
   mongoc_collection_destroy(collection); \
   if (THREAD_SETTINGS == 1) \
@@ -584,7 +588,7 @@ int read_multiple_documents_all_fields_from_collection(const char* DATABASE, con
   // check if the memory needed was allocated on the heap successfully
   if (data == NULL)
   {
-    color_print("Could not allocate the variables on the heap","red");
+    color_print("Could not allocate the memory needed on the heap","red");
     exit(0);
   }
 
@@ -613,8 +617,13 @@ int read_multiple_documents_all_fields_from_collection(const char* DATABASE, con
     database_reset_all;
     return 0;
   }
+
+  if (DOCUMENT_OPTIONS == 1)
+  {
+    document_options = BCON_NEW("sort", "{", DOCUMENT_OPTIONS_DATA, BCON_INT32(-1), "}");
+  }
  
-  document_settings = mongoc_collection_find_with_opts(collection, document, NULL, NULL);
+  document_settings = mongoc_collection_find_with_opts(collection, document, document_options, NULL);
   while (mongoc_cursor_next(document_settings, &current_document))
   {    
     if (count >= DOCUMENT_COUNT_START)
@@ -626,10 +635,20 @@ int read_multiple_documents_all_fields_from_collection(const char* DATABASE, con
 
       if ((strncmp(DATA,"",BUFFER_SIZE) == 0) || (strncmp(DATA,"",BUFFER_SIZE) != 0 && strstr(data,DATA) != NULL))
       {
+        string_replace(data,"{ \"$numberInt\" : ","");
+        string_replace(data," }, ",", ");
+
         // parse the json data
-        database_multiple_documents_parse_json_data(data,result,counter);
+        if (SETTINGS == 0)
+        {
+          database_multiple_documents_parse_json_data(data,result,counter);
+        }
+        else
+        {
+          database_multiple_documents_parse_json_data(data,result,result->document_count);
+        }
         counter++;
-        result->document_count++;
+        result->document_count++;        
       }
      
       // check if that is the total amount of documents to read

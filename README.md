@@ -1,4 +1,4 @@
-# X-CASH Proof of Stake - Website Server
+# X-CASH Proof of Stake - Shared Delegates Website Server
 
 This is the server for the [X-CASH Proof of Stake - Website](https://github.com/X-CASH-official/XCASH_proof_of_stake_website)
 
@@ -10,7 +10,7 @@ You will also need to run an X-CASH Daemon and X-CASH RPC wallet on the server. 
 
 
 
-## Compiling X-CASH Proof of Stake - Website Server from source
+## Compiling X-CASH Proof of Stake - Shared Delegates Website Server from source
 
 
 
@@ -62,16 +62,16 @@ To add MongoDB to your PATH (replace "MongoDB_folder" with the location of the b
 
 ### Cloning the repository
 
-`$ git clone https://github.com/X-CASH-official/XCASH_proof_of_stake_website_server.git`
+`$ git clone https://github.com/X-CASH-official/XCASH_proof_of_stake_shared_delegates_website_server.git`
 
 
 
 ### Build instructions
 
-X-CASH Proof of Stake - Website Server uses a Make file.
+X-CASH Proof of Stake - Shared Delegates Website Server uses a Make file.
 
 After cloning the repository, navigate to the folder  
-`cd XCASH_proof_of_stake_website_server`
+`cd XCASH_proof_of_stake_shared_delegates_website_server`
 
 Then use the make file to build the binary file  
 `make clean ; make`
@@ -115,19 +115,19 @@ To exit a screen if it is the active process, you can press Control + C. To exit
 
 
 
-## Running X-CASH Proof of Stake - Website Server test
-It is recomeneded to run the X-CASH Proof of Stake - Website Server test before you run the main program. The test will ensure that your system is compatbile, and that you have setup your system correctly.
+## Running X-CASH Proof of Stake - Shared Delegates Website Server test
+It is recomeneded to run the X-CASH Proof of Stake - Shared Delegates Website Server test before you run the main program. The test will ensure that your system is compatbile, and that you have setup your system correctly.
 
-To run the X-CASH Proof of Stake - Website Server test, Navigate to the folder that contains the binary, then run  
-`./xcash_proof_of_stake_website_server --test`
+To run the X-CASH Proof of Stake - Shared Delegates Website Server test, Navigate to the folder that contains the binary, then run  
+`./xcash_proof_of_stake_shared_delegates_website_server --test`
 
 The test will return the number of passed and failed test on the bottom of the console. The failed test need to be 0 before you run the node. If the output is not showing 0 for failed test, then you need to scroll through the testing output and find what test failed (It will be red instead of green). If this is a system compatibility test, then you will need to fix the system. If this is a core test that has failed, then you need to possibly rebuild, or contact us with your OS version, and we can look into it.
 
 
-## Running X-CASH Proof of Stake - Website Server
+## Running X-CASH Proof of Stake - Shared Delegates Website Server
 
-Then you will need to run the xcash_proof_of_stake_website_server. Navigate to the folder that contains the binary, then run  
-`./xcash_proof_of_stake_website_server --fee FEE -- minimum_amount MINIMUM_AMOUNT`
+Then you will need to run the xcash_proof_of_stake_shared_delegates_website_server. Navigate to the folder that contains the binary, then run  
+`./xcash_proof_of_stake_shared_delegates_website_server --fee FEE -- minimum_amount MINIMUM_AMOUNT`
 
 Replace FEE a fee (you canuse up to 6 decimal places)
 Replace MINIMUM_AMOUNT with the minimum amount a public address must have before receiving a payment
@@ -135,7 +135,7 @@ Replace MINIMUM_AMOUNT with the minimum amount a public address must have before
 Note: Payments are sent out daily at UTC 00:00
 
 We suggest you use the screen command to run the program in the background, this way you can still maintenance the server. To do this run  
-`screen -dmS xcash_proof_of_stake_website_server ./xcash_proof_of_stake_website_server --fee FEE -- minimum_amount MINIMUM_AMOUNT`
+`screen -dmS xcash_proof_of_stake_shared_delegates_website_server ./xcash_proof_of_stake_shared_delegates_website_server --fee FEE -- minimum_amount MINIMUM_AMOUNT`
 
 To bring the screen from the bacground process to the active process run  
 `screen -x NAME_OF_BACKGROUNDS_SCREEN`

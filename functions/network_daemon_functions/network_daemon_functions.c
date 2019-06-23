@@ -12,7 +12,12 @@
 #include "define_macros_functions.h"
 #include "network_daemon_functions.h"
 #include "network_functions.h"
+#include "network_security_functions.h"
 #include "string_functions.h"
+#include "convert.h"
+#include "vrf.h"
+#include "crypto_vrf.h"
+#include "sha512EL.h"
 
 /*
 -----------------------------------------------------------------------------------------------------------
@@ -58,6 +63,51 @@ int get_current_block_height(char *result, const int MESSAGE_SETTINGS)
     return 0;
   }
     
+  pointer_reset(data); 
+  return 1;
+}
+
+
+
+/*
+-----------------------------------------------------------------------------------------------------------
+Name: get_previous_block_hash
+Description: Gets the previous block hash of the network
+Parameters:
+  result - The string where you want the previous block hash to be saved to
+  MESSAGE_SETTINGS - 1 to print the messages, otherwise 0. This is used for the testing flag to not print any success or error messages
+Return: 0 if an error has occured, 1 if successfull
+-----------------------------------------------------------------------------------------------------------
+*/
+
+int get_previous_block_hash(char *result, const int MESSAGE_SETTINGS)
+{
+  // Constants
+  const char* HTTP_HEADERS[] = {"Content-Type: application/json","Accept: application/json"}; 
+  const size_t HTTP_HEADERS_LENGTH = sizeof(HTTP_HEADERS)/sizeof(HTTP_HEADERS[0]);
+
+  // Variables
+  char* data = (char*)calloc(BUFFER_SIZE,sizeof(char));
+
+  // check if the memory needed was allocated on the heap successfully
+  if (data == NULL)
+  {
+    color_print("Could not allocate the memory needed on the heap","red");
+    exit(0);
+  }
+
+  if (send_http_request(data,"127.0.0.1","/json_rpc",XCASH_DAEMON_PORT,"POST", HTTP_HEADERS, HTTP_HEADERS_LENGTH,"{\"jsonrpc\":\"2.0\",\"id\":\"0\",\"method\":\"get_last_block_header\"}",RECEIVE_DATA_TIMEOUT_SETTINGS,"get previous block hash",MESSAGE_SETTINGS) <= 0)
+  {  
+    pointer_reset(data);   
+    return 0;
+  }
+  
+  if (parse_json_data(data,"hash",result) == 0)
+  {
+    pointer_reset(data); 
+    return 0;
+  }
+      
   pointer_reset(data); 
   return 1;
 }
@@ -181,31 +231,37 @@ Return: 0 if an error has occured, 1 if you did not find the previous block on t
 */
 
 int check_found_block(const int MESSAGE_SETTINGS)
-{
+{  
   // Constants
   const char* HTTP_HEADERS[] = {"Content-Type: application/json","Accept: application/json"}; 
   const size_t HTTP_HEADERS_LENGTH = sizeof(HTTP_HEADERS)/sizeof(HTTP_HEADERS[0]);
 
   // Variables
   char* data = (char*)calloc(BUFFER_SIZE,sizeof(char));
+  char* data2 = (char*)calloc(BUFFER_SIZE,sizeof(char));
   char* result = (char*)calloc(BUFFER_SIZE,sizeof(char));
   int block_height;
   size_t count;
   size_t counter;
 
-  // define macros
   #define pointer_reset_all \
   free(data); \
   data = NULL; \
+  free(data2); \
+  data2 = NULL; \
   free(result); \
   result = NULL; 
 
   // check if the memory needed was allocated on the heap successfully
-  if (data == NULL || result == NULL)
+  if (data == NULL || data2 == NULL || result == NULL)
   {
     if (data != NULL)
     {
       pointer_reset(data);
+    }
+    if (data2 != NULL)
+    {
+      pointer_reset(data2);
     }
     if (result != NULL)
     {
@@ -233,13 +289,13 @@ int check_found_block(const int MESSAGE_SETTINGS)
   sscanf(result, "%d", &block_height);
   block_height--;
   memset(result,0,strnlen(result,BUFFER_SIZE));
-  sprintf(result,"%d",block_height);
+  sprintf(data2,"%d",block_height);
 
   // create the message
   memset(data,0,strnlen(data,BUFFER_SIZE));
   memcpy(data,"{\"jsonrpc\":\"2.0\",\"id\":\"0\",\"method\":\"get_block\",\"params\":{\"height\":",66);
-  memcpy(data+66,result,strnlen(result,BUFFER_SIZE));
-  memcpy(data+66+strnlen(result,BUFFER_SIZE),"}}",2);
+  memcpy(data+66,data2,strnlen(data2,BUFFER_SIZE));
+  memcpy(data+66+strnlen(data2,BUFFER_SIZE),"}}",2);
 
   // get the previous block blob
   memset(result,0,strnlen(result,BUFFER_SIZE));
@@ -249,24 +305,88 @@ int check_found_block(const int MESSAGE_SETTINGS)
     return 0;
   }
   memset(data,0,strnlen(data,BUFFER_SIZE));
-  
+
   if (parse_json_data(result,"blob",data) == 0)
   {
     pointer_reset_all; 
     return 0;
   }
-
-  // convert the public_address to hexadecimal
-  memset(result,0,strnlen(result,BUFFER_SIZE));
-  for (count = 0, counter = 0; count < XCASH_WALLET_LENGTH; count++, counter += 2)
-  {
-    sprintf(result+counter,"%02x",xcash_wallet_public_address[count] & 0xFF);
-  }
-  memcpy(result+196,"|",1);
-
-  if (strstr(data,result) != NULL)
+  
+  // get the reserve bytes data hash
+  if (strstr(data,BLOCKCHAIN_RESERVED_BYTES_START) == NULL)
   {
     pointer_reset_all; 
+    return 0;
+  }
+  memset(result,0,strnlen(result,BUFFER_SIZE));
+  memcpy(result,&data[strnlen(data,BUFFER_SIZE) - strnlen(strstr(data,BLOCKCHAIN_RESERVED_BYTES_START),BUFFER_SIZE)],DATA_HASH_LENGTH);
+
+  // create the message
+  memset(data,0,strlen(data));
+  memcpy(data,"{\r\n \"message_settings\": \"NODE_TO_BLOCK_VERIFIERS_GET_RESERVE_BYTES\",\r\n \"block_height\":\"",87);
+  memcpy(data+87,data2,strnlen(data2,BUFFER_SIZE));
+  memcpy(data+strlen(data),"\",\r\n}",5);
+
+  start:
+
+  // send the message to a random network data node
+  count = (int)((rand() % (NETWORK_DATA_NODES_AMOUNT - 1 + 1)) + 1);
+  memset(data2,0,strlen(data2));
+
+  if (send_and_receive_data_socket(data2,network_data_nodes_list.network_data_nodes_IP_address[count],SEND_DATA_PORT,data,TOTAL_CONNECTION_TIME_SETTINGS,"",0) == 0)
+  {
+    memcpy(data2,"Could not receive data from network data node ",46);
+    memcpy(data2,network_data_nodes_list.network_data_nodes_IP_address[count],strnlen(network_data_nodes_list.network_data_nodes_IP_address[count],BLOCK_VERIFIERS_IP_ADDRESS_TOTAL_LENGTH));
+    memcpy(data2,"\nConnecting to a different network data node",44);
+    color_print(data2,"red");
+    memset(data2,0,strlen(data2));
+    goto start;
+  }
+
+  if (verify_data(data2) == 0)
+  {
+    pointer_reset_all;   
+    return 0;
+  }
+
+  // parse the message
+  memset(data,0,strlen(data));
+  if (parse_json_data(data2,"reserve_bytes",data) == 0)
+  {
+    pointer_reset_all;   
+    return 0;
+  } 
+fprintf(stderr,"a");
+  // check if the data hash in the blockchain matches the network block string
+  memset(data2,0,strlen(data2));
+  crypto_hash_sha512((unsigned char*)data2,(const unsigned char*)data,strnlen(data,BUFFER_SIZE));
+  if (memcmp(result,data2,DATA_HASH_LENGTH) != 0)
+  {
+    pointer_reset_all;   
+    return 0;
+  }
+
+  // get the block producers public address
+  memset(data2,0,strlen(data2));
+  if (parse_reserve_bytes_data(data2,data,2,DATA_HASH_LENGTH) == 0)
+  {
+    pointer_reset_all;   
+    return 0;
+  }
+
+  // convert the public_address to a string
+  memset(result,0,strnlen(result,BUFFER_SIZE));
+  for (count = 0, counter = 0; count < 196; counter++, count += 2)
+  {
+    memset(data,0,strnlen(data,BUFFER_SIZE));
+    memcpy(data,&data2[count],2);
+    result[counter] = (int)strtol(data, NULL, 16);
+  }
+  
+  // check if the public address found the previous block
+  if (memcmp(result,xcash_wallet_public_address,XCASH_WALLET_LENGTH) == 0)
+  {
+    pointer_reset_all;
     return 2;
   }
       

@@ -116,15 +116,25 @@ Return: 0 if an error has occured, 1 if successfull
 int create_json_data_from_database_document_array(struct database_document_fields* database_data, char* result, const char* DOCUMENT_FIELDS)
 {
   // Variables
+  char* data = (char*)calloc(BUFFER_SIZE,sizeof(char));
   size_t count = 0;
   size_t counter = 1;
   size_t item_length;
   size_t value_length;
 
+  // check if the memory needed was allocated on the heap successfully
+  if (data == NULL)
+  {
+    return 0;
+  }
+
   memcpy(result,"{",1); 
   for (count = 0; count < database_data->count; count++)
   {
-    if (strstr(DOCUMENT_FIELDS,database_data->item[count]) == NULL)
+    memset(data,0,strlen(data));
+    memcpy(data,database_data->item[count],strnlen(database_data->item[count],BUFFER_SIZE));
+    memcpy(data+strlen(data),"|",1);
+    if (strstr(DOCUMENT_FIELDS,data) == NULL)
     {
       // get the length of the item and the value
       item_length = strnlen(database_data->item[count],BUFFER_SIZE);
@@ -145,6 +155,7 @@ int create_json_data_from_database_document_array(struct database_document_field
     }
   }
   memcpy(result+counter-1,"}",1);
+  pointer_reset(data);
   return 1;
 }
 
@@ -170,11 +181,18 @@ Return: 0 if an error has occured, 1 if successfull
 int create_json_data_from_database_multiple_documents_array(struct database_multiple_documents_fields* database_data, char* result, const char* DOCUMENT_FIELDS)
 {
   // Variables
+  char* data = (char*)calloc(BUFFER_SIZE,sizeof(char));
   size_t count = 0;
   size_t counter = 0;
   size_t data_count = 1;
   size_t item_length;
   size_t value_length; 
+
+  // check if the memory needed was allocated on the heap successfully
+  if (data == NULL)
+  {
+    return 0;
+  }
 
   memcpy(result,"[",1); 
   
@@ -184,7 +202,10 @@ int create_json_data_from_database_multiple_documents_array(struct database_mult
     data_count++;
     for (counter = 0; counter < database_data->database_fields_count; counter++)
     {
-      if (strstr(DOCUMENT_FIELDS,database_data->item[count][counter]) == NULL)
+      memset(data,0,strlen(data));
+      memcpy(data,database_data->item[count][counter],strnlen(database_data->item[count][counter],BUFFER_SIZE));
+      memcpy(data+strlen(data),"|",1);
+      if (strstr(DOCUMENT_FIELDS,data) == NULL)
       {
         // get the length of the item and the value
         item_length = strnlen(database_data->item[count][counter],BUFFER_SIZE);
@@ -208,6 +229,7 @@ int create_json_data_from_database_multiple_documents_array(struct database_mult
     data_count += 1;    
   }
   memcpy(result+data_count-1,"]",1);
+  pointer_reset(data);
   return 1;
 }
 
@@ -346,4 +368,97 @@ int string_replace(char *data, const char* STR1, const char* STR2)
   } 
 
   #undef REPLACE_STRING
+}
+
+
+
+/*
+-----------------------------------------------------------------------------------------------------------
+Name: parse_reserve_bytes_data
+Description: Parses the reserve bytes data to read any item in the reserve bytes
+Parameters:
+  result - The result
+  RESERVE_BYTES - The reserve bytes
+  ITEM - The item to get the reserve bytes data for
+  LENGTH - The legnth of the item
+Return: 0 if an error has occured, 1 if successfull
+-----------------------------------------------------------------------------------------------------------
+*/
+
+int parse_reserve_bytes_data(char *result, const char* RESERVE_BYTES, const int ITEM, const size_t LENGTH)
+{  
+  // Variables
+  char* data = (char*)calloc(BUFFER_SIZE,sizeof(char));
+  // since were going to be changing where data is referencing, we need to create a copy to pointer_reset
+  char* datacopy = data; 
+  int count;
+
+  // check if the memory needed was allocated on the heap successfully
+  if (data == NULL)
+  {
+    color_print("Could not allocate the memory needed on the heap","red");
+    exit(0);
+  }
+
+  memcpy(data,RESERVE_BYTES,strnlen(RESERVE_BYTES,BUFFER_SIZE));
+
+  // error check
+  if (ITEM > (int)string_count(RESERVE_BYTES,BLOCKCHAIN_DATA_SEGMENT_STRING))
+  {
+    return 0;
+  }
+
+  for (count = 0; count < ITEM; count++)
+  {
+    data = strstr(data,BLOCKCHAIN_DATA_SEGMENT_STRING) + strlen(BLOCKCHAIN_DATA_SEGMENT_STRING);
+  }  
+  memset(result,0,strlen(result));
+  memcpy(result,data,LENGTH);
+
+  pointer_reset(datacopy);
+  return 1;
+}
+
+
+
+/*
+-----------------------------------------------------------------------------------------------------------
+Name: random_string
+Description: Creates a random string of specified length
+Parameters:
+  result - The string where you want the random string to be saved to
+  LENGTH - The length of the random string
+Return: 0 if an error has occured, 1 if successfull
+-----------------------------------------------------------------------------------------------------------
+*/
+
+int random_string(char *result, const size_t LENGTH)
+{  
+  // Variables
+  char* data = (char*)calloc(BUFFER_SIZE,sizeof(char));
+  size_t count;
+
+  // define macros
+  #define STRING "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" 
+  #define MINIMUM 0
+  #define MAXIMUM 61
+
+  // check if the memory needed was allocated on the heap successfully
+  if (data == NULL)
+  {
+    color_print("Could not allocate the memory needed on the heap","red");
+    exit(0);
+  }
+  
+  memcpy(data,STRING,62);
+  for (count = 0; count < LENGTH; count++)
+  {
+    memcpy(result+count,&data[((rand() % (MAXIMUM - MINIMUM + 1)) + MINIMUM)],1);
+  }
+  pointer_reset(data); 
+  return 1;
+  
+  #undef STRING
+  #undef MINIMUM
+  #undef MAXIMUM  
 }

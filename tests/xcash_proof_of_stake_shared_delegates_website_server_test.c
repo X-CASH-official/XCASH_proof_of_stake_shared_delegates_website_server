@@ -12,7 +12,8 @@
 #include "network_functions_test.h"
 #include "reset_variables_allocated_on_the_heap_test.h"
 #include "string_functions_test.h"
-#include "xcash_proof_of_stake_website_server_test.h"
+#include "VRF_functions_test.h"
+#include "xcash_proof_of_stake_shared_delegates_website_server_test.h"
 
 /*
 -----------------------------------------------------------------------------------------------------------
@@ -33,7 +34,7 @@ void test()
   int xcash_proof_of_stake_total_passed_test = 0;
 
   // define macros
-  #define XCASH_PROOF_OF_STAKE_TOTAL_TEST 284
+  #define XCASH_PROOF_OF_STAKE_TOTAL_TEST 62
 
   // write the test message
   printf("Starting Test\n\n");
@@ -64,13 +65,10 @@ void test()
 
   // run the tests
 
-  xcash_proof_of_stake_total_passed_test += append_string_test();
-  xcash_proof_of_stake_total_passed_test += parse_json_data_test();
-  xcash_proof_of_stake_total_passed_test += create_json_data_from_database_document_array_test(); 
-  xcash_proof_of_stake_total_passed_test += string_count_test(); 
-  xcash_proof_of_stake_total_passed_test += string_replace_test(); 
-  xcash_proof_of_stake_total_passed_test += send_wallet_http_request_test(); 
-  xcash_proof_of_stake_total_passed_test += database_test();
+  xcash_proof_of_stake_total_passed_test += database_test(); 
+  xcash_proof_of_stake_total_passed_test += network_functions_test();
+  xcash_proof_of_stake_total_passed_test += string_functions_test();
+  xcash_proof_of_stake_total_passed_test += VRF_functions_test();
   xcash_proof_of_stake_total_passed_test += reset_variables_allocated_on_the_heap_test();
   //xcash_proof_of_stake_total_passed_test += analysing_code_test(); 
   

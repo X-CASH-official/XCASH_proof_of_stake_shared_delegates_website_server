@@ -1,5 +1,5 @@
-#ifndef STRING_FUNCTIONS_TEST_H_   /* Include guard */
-#define STRING_FUNCTIONS_TEST_H_
+#ifndef VRF_FUNCTIONS_TEST_H_   /* Include guard */
+#define VRF_FUNCTIONS_TEST_H_
 
 /*
 -----------------------------------------------------------------------------------------------------------
@@ -7,5 +7,5 @@ Function prototypes
 -----------------------------------------------------------------------------------------------------------
 */
 
-int string_functions_test();
+int VRF_functions_test();
 #endif

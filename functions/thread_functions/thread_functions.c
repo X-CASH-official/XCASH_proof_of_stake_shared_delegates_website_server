@@ -50,6 +50,8 @@ void* block_height_timer_thread()
   char* block_height = (char*)calloc(BUFFER_SIZE,sizeof(char));
   char* datacopy1;
   char* datacopy2;
+  time_t current_date_and_time;
+  struct tm* current_UTC_date_and_time;
   int count;
   int count2;
   int count3;
@@ -59,16 +61,15 @@ void* block_height_timer_thread()
   long long int block_reward_number;
   long long int total_votes;
   long long int block_reward_for_public_address;
-  struct database_document_fields database_data;
+  struct database_multiple_documents_fields database_data;
 
   // define macros
   #define DATA "{\"username\":\"XCASH\"}"
-  #define DATABASE_COLLECTION "statistics_copy"
 
   #define BLOCK_HEIGHT_TIMER_THREAD_ERROR(message) \
   fprintf(stderr,"\033[1;31mError:\nTime = %ld\n%s\033[0m\n\n",time(NULL),message); \
-  sleep(60); \
-  goto start1;
+  sleep(1); \
+  goto start;
 
   #define pointer_reset_all \
   free(data); \
@@ -83,6 +84,16 @@ void* block_height_timer_thread()
   block_reward = NULL; \
   free(block_height); \
   block_height = NULL; 
+
+  #define pointer_reset_database_array \
+  for (count = 0; count < public_address_count; count++) \
+  { \
+    for (counter = 0; counter < 4; counter++) \
+    { \
+      pointer_reset(database_data.item[count][counter]); \
+      pointer_reset(database_data.value[count][counter]); \
+    } \
+  }
 
   // check if the memory needed was allocated on the heap successfully
   if (data == NULL || data2 == NULL || data3 == NULL || data4 == NULL || block_reward == NULL || block_height == NULL)
@@ -117,353 +128,234 @@ void* block_height_timer_thread()
 
   for (;;)
   {
-    start1:
-
-    // check if you found the previous block in the network
-    if (check_found_block(0) == 2)
+    start:
+    // pause 200 milliseconds and then check the time. If it is a possible block time check if their is a new block
+    usleep(200000);
+    time(&current_date_and_time);
+    current_UTC_date_and_time = gmtime(&current_date_and_time);
+    if (current_UTC_date_and_time->tm_min % 5 == 0)
     {
-      // get the block information of the previous block
-      memset(block_reward,0,strnlen(block_reward,BUFFER_SIZE));
-      memset(data3,0,strnlen(data3,BUFFER_SIZE));
-      memset(data4,0,strnlen(data4,BUFFER_SIZE));
-      if (get_previous_block_information(data4,block_reward,data3,0) == 0)
+      // try for the next 5 seconds and if not then a new block is not going to be added to the network
+      for (count = 0; count < 5; count++)
       {
-        BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not get the previous block information.\nCould not check if you found the last block.\n\n");
-      }
-      // convert the block_reward to a number
-      sscanf(block_reward, "%lld", &block_reward_number);
+        get_current_block_height(data,0);
+        if (memcmp(data,current_block_height,strlen(current_block_height)) != 0)
+        {      
+          // replace the current_block_height variable
+          memset(current_block_height,0,strlen(current_block_height));
+          memcpy(current_block_height,data,strnlen(data,BUFFER_SIZE));
 
-      // get the block height of the previous block
-      memset(data,0,strnlen(data,BUFFER_SIZE));
-      memset(block_height,0,strnlen(block_height,BUFFER_SIZE));
-      if (get_current_block_height(data,0) == 0)
-      {
-        BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not get the previous block height.\nCould not check if you found the last block.\n\n");
-      }
-      // convert the block_count_total to a number
-      sscanf(data, "%lld", &number);
-      // update the block_count_total
-      number--;
-      // convert the number to a string
-      sprintf(block_height,"%lld",number);
-
-
-
-      // update the block_count_total in the statistics collection
-      memset(data,0,strnlen(data,BUFFER_SIZE));
-      // get the current block_count_total in the database
-      if (read_document_field_from_collection(DATABASE_NAME,DATABASE_COLLECTION,DATA,"block_count_total",data,0) == 0)
-      {
-        BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not read the block_count_total from the database.\nCould not check if you found the last block.\n\n");
-      }
-      // convert the block_count_total to a number
-      sscanf(data, "%lld", &number);
-      // update the block_count_total
-      number++;
-      // convert the number to a string
-      memset(data,0,strnlen(data,BUFFER_SIZE));
-      sprintf(data,"%lld",number);
-      // update the block_count_total in the database
-      memset(data2,0,strnlen(data2,BUFFER_SIZE));
-      memcpy(data2,"{\"block_count_total\":\"",22);
-      memcpy(data2+22,data,strnlen(data,BUFFER_SIZE));
-      memcpy(data2+22+strnlen(data,BUFFER_SIZE),"\"}",2);
-      if (update_document_from_collection(DATABASE_NAME,DATABASE_COLLECTION,DATA,data2,0) == 0)
-      {
-        BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not update the block_count_total from the database.\nCould not check if you found the last block.\n\n");
-      }
-
-
-
-      // update the block_count in the statistics collection
-      memset(data,0,strnlen(data,BUFFER_SIZE));
-      // get the current block_count in the database
-      if (read_document_field_from_collection(DATABASE_NAME,DATABASE_COLLECTION,DATA,"block_count",data,0) == 0)
-      {
-        BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not read the block_count from the database.\nCould not check if you found the last block.\n\n");
-      }
-      memcpy(data+strnlen(data,BUFFER_SIZE)-1,",",1);
-      memcpy(data+strnlen(data,BUFFER_SIZE),block_height,strnlen(block_height,BUFFER_SIZE));
-      memcpy(data+strnlen(data,BUFFER_SIZE),"]",1);
-      // update the block_count in the database
-      memset(data2,0,strnlen(data2,BUFFER_SIZE));
-      memcpy(data2,"{\"block_count\":\"",16);
-      memcpy(data2+16,data,strnlen(data,BUFFER_SIZE));
-      memcpy(data2+16+strnlen(data,BUFFER_SIZE),"\"}",2);
-      if (update_document_from_collection(DATABASE_NAME,DATABASE_COLLECTION,DATA,data2,0) == 0)
-      {
-        BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not update the block_count from the database.\nCould not check if you found the last block.\n\n");
-      }
-
-
-
-      // update the block_hash in the statistics collection
-      memset(data,0,strnlen(data,BUFFER_SIZE));
-      // get the current block_hash in the database
-      if (read_document_field_from_collection(DATABASE_NAME,DATABASE_COLLECTION,DATA,"block_hash",data,0) == 0)
-      {
-        BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not read the block_hash from the database.\nCould not check if you found the last block.\n\n");
-      }
-      memcpy(data+strnlen(data,BUFFER_SIZE)-1,",",1);
-      memcpy(data+strnlen(data,BUFFER_SIZE),data4,strnlen(data4,BUFFER_SIZE));
-      memcpy(data+strnlen(data,BUFFER_SIZE),"]",1);
-      // update the block_hash in the database
-      memset(data2,0,strnlen(data2,BUFFER_SIZE));
-      memcpy(data2,"{\"block_hash\":\"",15);
-      memcpy(data2+15,data,strnlen(data,BUFFER_SIZE));
-      memcpy(data2+15+strnlen(data,BUFFER_SIZE),"\"}",2);
-      if (update_document_from_collection(DATABASE_NAME,DATABASE_COLLECTION,DATA,data2,0) == 0)
-      {
-        BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not update the block_hash from the database.\nCould not check if you found the last block.\n\n");
-      }
-
-
-
-      // update the block_reward in the statistics collection
-      memset(data,0,strnlen(data,BUFFER_SIZE));
-      // get the current block_reward in the database
-      if (read_document_field_from_collection(DATABASE_NAME,DATABASE_COLLECTION,DATA,"block_reward",data,0) == 0)
-      {
-        BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not read the block_reward from the database.\nCould not check if you found the last block.\n\n");
-      }
-      memcpy(data+strnlen(data,BUFFER_SIZE)-1,",",1);
-      memcpy(data+strnlen(data,BUFFER_SIZE),block_reward,strnlen(data4,BUFFER_SIZE));
-      memcpy(data+strnlen(data,BUFFER_SIZE),"]",1);
-      // update the block_reward in the database
-      memset(data2,0,strnlen(data2,BUFFER_SIZE));
-      memcpy(data2,"{\"block_reward\":\"",17);
-      memcpy(data2+17,data,strnlen(data,BUFFER_SIZE));
-      memcpy(data2+17+strnlen(data,BUFFER_SIZE),"\"}",2);
-      if (update_document_from_collection(DATABASE_NAME,DATABASE_COLLECTION,DATA,data2,0) == 0)
-      {
-        BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not update the block_reward from the database.\nCould not check if you found the last block.\n\n");
-      }
-
-
-
-      // update the block_date_and_time in the statistics collection
-      memset(data,0,strnlen(data,BUFFER_SIZE));
-      // get the current block_date_and_time in the database
-      if (read_document_field_from_collection(DATABASE_NAME,DATABASE_COLLECTION,DATA,"block_date_and_time",data,0) == 0)
-      {
-        BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not read the block_date_and_time from the database.\nCould not check if you found the last block.\n\n");
-      }
-      memcpy(data+strnlen(data,BUFFER_SIZE)-1,",",1);
-      memcpy(data+strnlen(data,BUFFER_SIZE),data3,strnlen(data3,BUFFER_SIZE));
-      memcpy(data+strnlen(data,BUFFER_SIZE),"]",1);
-      // update the block_date_and_time in the database
-      memset(data2,0,strnlen(data2,BUFFER_SIZE));
-      memcpy(data2,"{\"block_date_and_time\":\"",24);
-      memcpy(data2+24,data,strnlen(data,BUFFER_SIZE));
-      memcpy(data2+24+strnlen(data,BUFFER_SIZE),"\"}",2);
-      if (update_document_from_collection(DATABASE_NAME,DATABASE_COLLECTION,DATA,data2,0) == 0)
-      {
-        BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not update the block_date_and_time from the database.\nCould not check if you found the last block.\n\n");
-      }
-
-
-
-      // update the total_xcash in the statistics collection
-      memset(data,0,strnlen(data,BUFFER_SIZE));
-      // get the current total_xcash in the database
-      if (read_document_field_from_collection(DATABASE_NAME,DATABASE_COLLECTION,DATA,"total_xcash",data,0) == 0)
-      {
-        BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not read the total_xcash from the database.\nCould not check if you found the last block.\n\n");
-      }
-      // convert the total_xcash to a number
-      sscanf(data, "%lld", &number);
-      // update the total_xcash
-      number += block_reward_number;
-      // convert the number to a string
-      memset(data,0,strnlen(data,BUFFER_SIZE));
-      sprintf(data,"%lld",number);
-      // update the total_xcash in the database
-      memset(data2,0,strnlen(data2,BUFFER_SIZE));
-      memcpy(data2,"{\"total_xcash\":\"",16);
-      memcpy(data2+16,data,strnlen(data,BUFFER_SIZE));
-      memcpy(data2+16+strnlen(data,BUFFER_SIZE),"\"}",2);
-      if (update_document_from_collection(DATABASE_NAME,DATABASE_COLLECTION,DATA,data2,0) == 0)
-      {
-        BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not update the total_xcash from the database.\nCould not check if you found the last block.\n\n");
-      }   
-
-
-      // get the count of how many public addresses voted for the delegate
-      memset(data2,0,strnlen(data2,BUFFER_SIZE));
-      memcpy(data2,"/URL?public_address=",20);
-      memcpy(data2+20,xcash_wallet_public_address,XCASH_WALLET_LENGTH);
-      count = 1;
-      public_address_count = 0;
-      for (;;)
-      {
-        memset(data,0,strnlen(data,BUFFER_SIZE));
-        memset(data3,0,strnlen(data3,BUFFER_SIZE));
-        memcpy(data3,data2,strnlen(data2,BUFFER_SIZE));
-        memcpy(data3,"&start=",7);
-        sprintf(data,"%d",count);
-        memcpy(data3,data,strnlen(data,BUFFER_SIZE));
-        memset(data,0,strnlen(data,BUFFER_SIZE));
-        if (send_http_request(data,"",data2,443,"GET", HTTP_HEADERS, HTTP_HEADERS_LENGTH,"",RECEIVE_DATA_TIMEOUT_SETTINGS,"send payment",0) <= 0)
-        {
-          BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not get the list of public addresses that voted for the delegate.\nCould not check if you found the last block.\n\n");
-        }
-        counter = (int)string_count(data,"},") + 1;
-        public_address_count += counter;
-        if (counter != 100)
-        {
-          break;
-        }
-        count++;
-      }
-
-      // error check
-      if (public_address_count == 0)
-      {
-        continue;
-      }
-
-
-
-      // initialize the database_document_fields struct 
-      for (count = 0; count < public_address_count; count++)
-      {
-        database_data.item[count] = (char*)calloc(100,sizeof(char));
-        database_data.value[count] = (char*)calloc(100,sizeof(char));
-
-        if (database_data.item[count] == NULL || database_data.value[count] == NULL)
-        {
-          color_print("Could not allocate the variables on the heap","red");
-          exit(0);
-        }
-      }
-      database_data.count = 0;
-
-
-      // get the public addresses that voted for the delegate
-      memset(data2,0,strnlen(data2,BUFFER_SIZE));
-      memcpy(data2,"/URL?public_address=",20);
-      memcpy(data2+20,xcash_wallet_public_address,XCASH_WALLET_LENGTH);
-      count = 1;
-      public_address_count = 0;
-      count3 = 0;
-      for (;;)
-      {
-        memset(data,0,strnlen(data,BUFFER_SIZE));
-        memset(data3,0,strnlen(data3,BUFFER_SIZE));
-        memcpy(data3,data2,strnlen(data2,BUFFER_SIZE));
-        memcpy(data3,"&start=",7);
-        sprintf(data,"%d",count);
-        memcpy(data3,data,strnlen(data,BUFFER_SIZE));
-        memset(data,0,strnlen(data,BUFFER_SIZE));
-        if (send_http_request(data,"",data2,443,"GET", HTTP_HEADERS, HTTP_HEADERS_LENGTH,"",RECEIVE_DATA_TIMEOUT_SETTINGS,"send payment",0) <= 0)
-        {
-          BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not get the list of public addresses that voted for the delegate.\nCould not check if you found the last block.\n\n");
-        }
-        counter = (int)string_count(data,"},") + 1;
-
-        // parse the json and make sure to only add the public addresses that have enabled status
-        datacopy1 = data;
-        for (count2 = 0; count2 < counter; count2++)
-        {
-          memset(data2,0,strnlen(data2,BUFFER_SIZE));
-          datacopy1 = strstr(datacopy1,"public_address_created_reserve_proof") + 39;
-          datacopy2 = strstr(datacopy1,"\"");
-          memcpy(database_data.item[count3],datacopy1,strnlen(datacopy1,BUFFER_SIZE) - strnlen(datacopy2,BUFFER_SIZE));
-          datacopy1 = strstr(datacopy1,"total") + 8;
-          datacopy2 = strstr(datacopy1,"\"");
-          memcpy(database_data.value[count3],datacopy1,strnlen(datacopy1,BUFFER_SIZE) - strnlen(datacopy2,BUFFER_SIZE));
-          datacopy1 = strstr(datacopy1,"vote_status") + 14;
-          datacopy2 = strstr(datacopy1,"\"");
-          memcpy(data2,datacopy1,strnlen(datacopy1,BUFFER_SIZE) - strnlen(datacopy2,BUFFER_SIZE));
-          if (strncmp(data2,"enabled",BUFFER_SIZE) != 0)
+          // check if you found the previous block in the network
+          if (check_found_block(0) == 2)
           {
-            memset(database_data.item[count3],0,strnlen(database_data.item[count3],BUFFER_SIZE));
-            memset(database_data.value[count3],0,strnlen(database_data.value[count3],BUFFER_SIZE));
+            // get the block information of the previous block
+            memset(block_reward,0,strnlen(block_reward,BUFFER_SIZE));
+            memset(data3,0,strnlen(data3,BUFFER_SIZE));
+            memset(data4,0,strnlen(data4,BUFFER_SIZE));
+            if (get_previous_block_information(data4,block_reward,data3,0) == 0)
+            {
+              BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not get the previous block information.\nCould not check if you found the last block.\n\n");
+            }
+            // convert the block_reward to a number
+            sscanf(block_reward, "%lld", &block_reward_number);
+      
+            // get the block height of the previous block
+            memset(data,0,strnlen(data,BUFFER_SIZE));
+            memset(block_height,0,strnlen(block_height,BUFFER_SIZE));
+            if (get_current_block_height(data,0) == 0)
+            {
+              BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not get the previous block height.\nCould not check if you found the last block.\n\n");
+            }
+            // convert the block_count_total to a number
+            sscanf(data, "%lld", &number);
+            // update the block_count_total
+            number--;
+            // convert the number to a string
+            sprintf(block_height,"%lld",number);
+
+            // get the blocks count
+            memset(data2,0,strlen(data2));
+            if (read_document_field_from_collection(DATABASE_NAME,"statistics",DATA,"block_count",data2,0) == 0)
+            {
+              BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not update the database statistics.\n\n");
+            }
+
+            // add the blocks data
+            memset(data,0,strlen(data));
+            memcpy(data,"{\"block_height\":\"",17);
+            memcpy(data+strlen(data),block_height,strnlen(block_height,BUFFER_SIZE));
+            memcpy(data+strlen(data),"\",\"block_hash\":\"",16);
+            memcpy(data+strlen(data),data4,strnlen(data4,BUFFER_SIZE));
+            memcpy(data+strlen(data),"\",\"block_date_and_time\":\"",25);
+            memcpy(data+strlen(data),data3,strnlen(data3,BUFFER_SIZE));
+            memcpy(data+strlen(data),"\",\"block_reward\":\"",18);
+            memcpy(data+strlen(data),block_reward,strnlen(block_reward,BUFFER_SIZE));
+            memcpy(data+strlen(data),"\",\"block_count\":\"",17);
+            memcpy(data+strlen(data),data2,strnlen(data2,BUFFER_SIZE));
+            memcpy(data+strlen(data),"\"}",2);
+            insert_document_into_collection_json(DATABASE_NAME,"blocks_found",data,0);
+      
+            // create the message
+            memset(data,0,strlen(data));
+            memcpy(data,"{\"public_address_voted_for\":\"",29);
+            memcpy(data+29,xcash_wallet_public_address,XCASH_WALLET_LENGTH);
+            memcpy(data+127,"\"}",2); 
+
+            // get the count of how many public addresses voted for the delegate
+            for (count = 1; count <= 50; count++)
+            { 
+              memset(data2,0,strlen(data2));
+              memcpy(data2,"reserve_proofs_",15);
+              sprintf(data2+15,"%d",count);
+              counter = count_documents_in_collection(DATABASE_NAME,data2,data,0);
+              public_address_count += counter;
+            }
+
+            // error check
+            if (public_address_count == 0)
+            {
+              continue;
+            }
+
+            // initialize the database_multiple_documents_fields struct 
+            for (count = 0; count < public_address_count; count++)
+            {
+              for (counter = 0; counter < 4; counter++)
+              {
+                database_data.item[count][counter] = (char*)calloc(RESERVE_PROOFS_LENGTH,sizeof(char));
+                database_data.value[count][counter] = (char*)calloc(RESERVE_PROOFS_LENGTH,sizeof(char));
+              }
+            }
+            database_data.document_count = 0;
+            database_data.database_fields_count = 0;
+
+            // create the message
+            memset(data3,0,strnlen(data3,BUFFER_SIZE));
+            memcpy(data3,"\"public_address_voted_for\" : \"",30);
+            memcpy(data3+30,xcash_wallet_public_address,XCASH_WALLET_LENGTH);
+            memcpy(data3+128,"\"",1);
+
+            // get all of the reserve proofs for the public address
+            for (count = 1; count <= 50; count++)
+            { 
+              memset(data2,0,strlen(data2));
+              memcpy(data2,"reserve_proofs_",15);
+              sprintf(data2+15,"%d",count);
+
+              counter = count_documents_in_collection(DATABASE_NAME,data2,data3,0);
+              if (counter > 0)
+              {
+                if (read_multiple_documents_all_fields_from_collection(DATABASE_NAME,data2,data3,&database_data,1,counter,0,"",0,0) == 0)
+                {
+                  pointer_reset_database_array;
+                  continue;
+                }
+              }
+            }
+
+            // get the total votes
+            total_votes = 0;
+            for (count = 0; count < database_data.document_count; count++)
+            {
+              sscanf(database_data.value[count][2], "%lld", &number);
+              total_votes += number;
+            }
+
+            // split the block reward with all of the public_addresses and the fee
+            for (count = 0; count < database_data.document_count; count++)
+            {
+              // get the votes
+              sscanf(database_data.value[count][2], "%lld", &number);
+              block_reward_for_public_address = (long long int) (((number / total_votes) * block_reward_number)) | 0;
+              // create the message
+              memset(data2,0,strnlen(data2,BUFFER_SIZE));
+              memcpy(data2,"{\"public_address\":\"",19);
+              memcpy(data2+19,database_data.value[count][0],XCASH_WALLET_LENGTH);
+              memcpy(data2+117,"\"}",2);
+              memset(data3,0,strnlen(data3,BUFFER_SIZE));
+              if (read_document_field_from_collection(DATABASE_NAME,"public_addresses",data2,"current_total",data3,0) == 0)
+              {
+                BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not split the block reward with all of the public address that voted for the delegate.\n\n");
+              }
+              sscanf(data3, "%lld", &number);
+              number += block_reward_for_public_address;
+              memset(data3,0,strnlen(data3,BUFFER_SIZE));
+              sprintf(data3,"%lld",number);
+              memset(data4,0,strnlen(data4,BUFFER_SIZE));
+              memcpy(data4,"{\"current_total\":\"",18);
+              memcpy(data4+18,data3,strnlen(data3,BUFFER_SIZE));
+              memcpy(data4+18+strnlen(data3,BUFFER_SIZE),"\"}",2);
+              if (update_document_from_collection(DATABASE_NAME,"public_addresses",data2,data4,0) == 0)
+              {
+                BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not split the block reward with all of the public address that voted for the delegate.\nCould not check if you found the last block.\n\n");
+              } 
+            }
+            // update the statistics
+            memset(data2,0,strlen(data2));
+            if (read_document_field_from_collection(DATABASE_NAME,"statistics",DATA,"total_blocks_found",data2,0) == 0)
+            {
+              BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not update the database statistics.\n\n");
+            }
+            sscanf(data2, "%lld", &number);
+            number++;      
+            // create the message
+            memset(data3,0,strlen(data3));
+            memcpy(data3,"{\"total_blocks_found\":\"",23);
+            sprintf(data3+23,"%lld",number);
+            memcpy(data3+strlen(data3),"\"}",2);
+            if (update_document_from_collection(DATABASE_NAME,"statistics",DATA,data3,0) == 0 && update_document_from_collection(DATABASE_NAME,"statistics",DATA,"{\"block_count\",\"0\"}",0) == 0)
+            {
+              BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not update the database statistics.\n\n");
+            }  
+            pointer_reset_database_array;
           }
           else
           {
-            database_data.count++;
-            count3++;
-          }
-        }
-        if (counter != 100)
-        {
-          break;
-        }
-        count++;
-      }
-
-
-
-      // add any public addresses that are not in the database and get the total amount of all votes
-      total_votes = 0;
-      for (count = 0; count < database_data.count; count++)
-      {
-        // create the message
-        memset(data2,0,strnlen(data2,BUFFER_SIZE));
-        memcpy(data2,"{\"public_address\":\"",19);
-        memcpy(data2+19,database_data.item[count],XCASH_WALLET_LENGTH);
-        memcpy(data2+117,"\"}",2);
-        // get the total votes
-        sscanf(database_data.value[count], "%lld", &number);
-        total_votes += number;
-        if (count_documents_in_collection(DATABASE_NAME,"public_addresses",data2,0) == 0)
-        {
-          memcpy(data2+118,",\"current_total\":\"0\",\"total\":\"0\",\"inactivity_count\":\"0\"}",56);
-          if (insert_document_into_collection_json(DATABASE_NAME,"public_addresses",data2,0) == 0)
+            // update the statistics
+            memset(data2,0,strlen(data2));
+            if (read_document_field_from_collection(DATABASE_NAME,"statistics",DATA,"block_count",data2,0) == 0)
+            {
+              BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not update the database statistics.\n\n");
+            }
+            sscanf(data2, "%lld", &number);
+            number++;      
+            // create the message
+            memset(data3,0,strlen(data3));
+            memcpy(data3,"{\"block_count\":\"",16);
+            sprintf(data3+16,"%lld",number);
+            memcpy(data3+strlen(data3),"\"}",2);
+            if (update_document_from_collection(DATABASE_NAME,"statistics",DATA,data3,0) == 0)
+            {
+              BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not update the database statistics.\n\n");
+            }     
+          }    
+          // update the statistics
+          memset(data2,0,strlen(data2));
+          if (read_document_field_from_collection(DATABASE_NAME,"statistics",DATA,"total_blocks",data2,0) == 0)
           {
-            BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not add a public address that voted for the delegate to the database.\nCould not check if you found the last block.\n\n");
+            BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not update the database statistics.\n\n");
           }
+          sscanf(data2, "%lld", &number);
+          number++;      
+          // create the message
+          memset(data3,0,strlen(data3));
+          memcpy(data3,"{\"total_blocks\":\"",17);
+          sprintf(data3+17,"%lld",number);
+          memcpy(data3+strlen(data3),"\"}",2);
+          if (update_document_from_collection(DATABASE_NAME,"statistics",DATA,data3,0) == 0)
+          {
+            BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not update the database statistics.\n\n");
+          }         
+          goto start;
         }
-      }
-
-
-
-      // split the block reward with all of the public_addresses and the fee
-      for (count = 0; count < database_data.count; count++)
-      {
-        // get the votes
-        sscanf(database_data.value[count], "%lld", &number);
-        block_reward_for_public_address = (long long int) (((number / total_votes) * block_reward_number)) | 0;
-        // create the message
-        memset(data2,0,strnlen(data2,BUFFER_SIZE));
-        memcpy(data2,"{\"public_address\":\"",19);
-        memcpy(data2+19,database_data.item[count],XCASH_WALLET_LENGTH);
-        memcpy(data2+117,"\"}",2);
-        memset(data3,0,strnlen(data3,BUFFER_SIZE));
-        if (read_document_field_from_collection(DATABASE_NAME,"public_addresses",data2,"current_total",data3,0) == 0)
-        {
-          BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not split the block reward with all of the public address that voted for the delegate.\nCould not check if you found the last block.\n\n");
-        }
-        sscanf(data3, "%lld", &number);
-        number += block_reward_for_public_address;
-        memset(data3,0,strnlen(data3,BUFFER_SIZE));
-        sprintf(data3,"%lld",number);
-        memset(data4,0,strnlen(data4,BUFFER_SIZE));
-        memcpy(data4,"{\"current_total\":\"",18);
-        memcpy(data4+18,data3,strnlen(data3,BUFFER_SIZE));
-        memcpy(data4+18+strnlen(data3,BUFFER_SIZE),"\"}",2);
-        if (update_document_from_collection(DATABASE_NAME,"public_addresses",data2,data4,0) == 0)
-        {
-          BLOCK_HEIGHT_TIMER_THREAD_ERROR("Could not split the block reward with all of the public address that voted for the delegate.\nCould not check if you found the last block.\n\n");
-        } 
-      }
-      
-      
-      
-      for (count = 0; count < database_data.count; count++)
-      {
-        pointer_reset(database_data.item[count]);
-        pointer_reset(database_data.value[count]);
+        sleep(1);
       }
     }
-    sleep(60);
-  }  
+  }
   pointer_reset_all;
   pthread_exit(0);
 
-  #undef DATA
-  #undef DATABASE_COLLECTION  
+  #undef DATA 
   #undef BLOCK_HEIGHT_TIMER_THREAD_ERROR
   #undef pointer_reset_all
 }
@@ -507,6 +399,7 @@ void* payment_timer_thread()
 
   // define macros
   #define DATA "{\"username\":\"XCASH\"}"
+  #define DATABASE_COLLECTION "public_addresses"
   #define PAYMENT_TIMER_THREAD_ERROR(message) \
   fprintf(stderr,"\033[1;31mError:\nTime = %ld\n%s\033[0m\n\n",time(NULL),message); \
   bson_destroy(document); \
@@ -593,7 +486,7 @@ void* payment_timer_thread()
       fprintf(stderr,"\033[1;32mIt is UTC 00:00\nSending the daily payments.\n\n");
 
       // set the collection
-      collection = mongoc_client_get_collection(database_client, DATABASE_NAME, "public_addresses");
+      collection = mongoc_client_get_collection(database_client, DATABASE_NAME, DATABASE_COLLECTION);
 
       document = bson_new();
       if (!document)
@@ -632,6 +525,19 @@ void* payment_timer_thread()
         sscanf(current_total, "%lld", &number);
         if (number >= minimum_amount_atomic_units)
         {
+          // send the payment
+          memset(data2,0,strnlen(data2,BUFFER_SIZE));
+          memset(data3,0,strnlen(data3,BUFFER_SIZE));
+          memset(payment_tx_hash,0,strnlen(payment_tx_hash,BUFFER_SIZE));
+          memset(payment_tx_key,0,strnlen(payment_tx_key,BUFFER_SIZE));
+          if (send_payment(public_address, current_total, payment_tx_hash, payment_tx_key, 0) == 0)
+          {
+            PAYMENT_TIMER_THREAD_ERROR("Could not send a payment.\nCould not send payments.");
+          }
+
+          const size_t TX_HASH_LENGTH = strnlen(payment_tx_hash,BUFFER_SIZE);
+          const size_t TX_KEY_LENGTH = strnlen(payment_tx_key,BUFFER_SIZE);
+
           // create the message
           memset(data,0,strnlen(data,BUFFER_SIZE));
           memset(data2,0,strnlen(data2,BUFFER_SIZE));
@@ -659,19 +565,6 @@ void* payment_timer_thread()
           {
             PAYMENT_TIMER_THREAD_ERROR("Could not add the current_total to the total for a payment in the database.\nCould not send payments.");
           } 
-
-          // send the payment
-          memset(data2,0,strnlen(data2,BUFFER_SIZE));
-          memset(data3,0,strnlen(data3,BUFFER_SIZE));
-          memset(payment_tx_hash,0,strnlen(payment_tx_hash,BUFFER_SIZE));
-          memset(payment_tx_key,0,strnlen(payment_tx_key,BUFFER_SIZE));
-          if (send_payment(public_address, current_total, payment_tx_hash, payment_tx_key, 0) == 0)
-          {
-            PAYMENT_TIMER_THREAD_ERROR("Could not send a payment.\nCould not send payments.");
-          }
-
-          const size_t TX_HASH_LENGTH = strnlen(payment_tx_hash,BUFFER_SIZE);
-          const size_t TX_KEY_LENGTH = strnlen(payment_tx_key,BUFFER_SIZE);
 
           // get the current date and time
           sprintf(data3,"%lld",(long long int)time(NULL));
@@ -764,31 +657,6 @@ void* payment_timer_thread()
           }          
         }
       }
-
-      // if any payments were made, add the amount_of_payments to the amount_of_payments in the statistics collection
-      if (amount_of_payments > 0)
-      {
-        // get the amount of payments in the statistics collection
-        memset(data,0,strnlen(data,BUFFER_SIZE));
-        if (read_document_field_from_collection(DATABASE_NAME,"statistics_copy",DATA,"amount_of_payments",data,0) == 0)
-        {
-          PAYMENT_TIMER_THREAD_ERROR("Could not read the total amount of payments for the database.\nCould not send payments.");
-        }
-        // convert the total_xcash to a number
-        sscanf(data, "%lld", &number);
-        amount_of_payments += number;
-        // update the amount_of_payments in the database
-        memset(data,0,strnlen(data,BUFFER_SIZE));
-        sprintf(data,"%lld",amount_of_payments);
-        memset(data2,0,strnlen(data2,BUFFER_SIZE));
-        memcpy(data2,"{\"amount_of_payments\":\"",23);
-        memcpy(data2+23,data,strnlen(data,BUFFER_SIZE));
-        memcpy(data2+23+strnlen(data,BUFFER_SIZE),"\"}",2);
-        if (update_document_from_collection(DATABASE_NAME,"statistics_copy",DATA,data2,0) == 0)
-        {
-          PAYMENT_TIMER_THREAD_ERROR("Could not update the total amount of payments for the database.\nCould not send payments.");
-        }
-      }
     }    
     sleep(60);
   }
@@ -796,6 +664,7 @@ void* payment_timer_thread()
   pthread_exit(0);
 
   #undef DATA
+  #undef DATABASE_COLLECTION
   #undef PAYMENT_TIMER_THREAD_ERROR
   #undef pointer_reset_all
 }

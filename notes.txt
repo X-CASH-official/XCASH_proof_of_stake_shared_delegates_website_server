@@ -1,0 +1,38 @@
+gcc -o xcash_proof_of_stake_website_server xcash_proof_of_stake_website_server.c functions/database_functions/database_functions.c functions/file_functions/file_functions.c functions/network_daemon_functions/network_daemon_functions.c functions/network_functions/network_functions.c functions/network_wallet_functions/network_wallet_functions.c functions/server_functions/server_functions.c functions/string_functions/string_functions.c functions/thread_functions/thread_functions.c tests/analysing_code_test/analysing_code_test.c tests/database_functions_test/database_functions_test.c tests/file_functions_test/file_functions_test.c tests/reset_variables_allocated_on_the_heap_test/reset_variables_allocated_on_the_heap_test.c tests/network_functions_test/network_functions_test.c tests/string_functions_test/string_functions_test.c tests/xcash_proof_of_stake_website_server_test.c -Ifunctions/database_functions/ -Ifunctions/file_functions/ -Ifunctions/global_data/ -Ifunctions/network_daemon_functions/ -Ifunctions/network_functions/ -Ifunctions/network_wallet_functions/ -Ifunctions/server_functions/ -Ifunctions/string_functions/ -Ifunctions/thread_functions/ -Iglobal_data -Itests -Itests/analysing_code_test/ -Itests/database_functions_test/ -Itests/file_functions_test/ -Itests/global_data/ -Itests/network_functions_test/ -Itests/reset_variables_allocated_on_the_heap_test/ -Itests/string_functions_test/ -I/usr/local/include/libbson-1.0 -I/usr/local/include/libmongoc-1.0 -lmongoc-1.0 -lbson-1.0 -lmicrohttpd -lpthread
+
+#include "stdio.h"
+#include "stdlib.h"
+#include "sys/types.h"
+#include "sys/socket.h"
+#include "string.h"
+#include <netdb.h> 
+#include "netinet/in.h"
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <signal.h>
+#include <pthread.h>
+#include <time.h> 
+#include <mongoc/mongoc.h>
+#include <bson/bson.h>
+#include <microhttpd.h>
+
+#include "define_macro_functions.h"
+#include "define_macros.h"
+#include "structures.h"
+#include "variables.h"
+
+#include "define_macros_functions.h"
+#include "database_functions.h"
+#include "file_functions.h"
+#include "server_functions.h"
+#include "string_functions.h"
+#include "thread_functions.h"
+
+#include "define_macros_test.h"
+#include "variables_test.h"
+#include "analysing_code_test.h"
+#include "database_functions_test.h"
+#include "file_functions_test.h"
+#include "reset_variables_allocated_on_the_heap_test.h"
+#include "string_functions_test.h"
+#include "xcash_proof_of_stake_website_server_test.h"

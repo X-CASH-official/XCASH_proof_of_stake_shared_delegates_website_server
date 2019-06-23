@@ -202,96 +202,290 @@ Return: The http status
 int get_statistics(char* result)
 {
   // Variables
-  char* data = (char*)calloc(BUFFER_SIZE,sizeof(char));  
+  char* data;
+  char* message = (char*)calloc(BUFFER_SIZE,sizeof(char));
+  char* data2 = (char*)calloc(BUFFER_SIZE,sizeof(char));
   int count = 0;
+  int counter = 0;
+  long long int block_reward_number;
+  long long int total_block_reward_number = 0;
   struct database_document_fields database_data;
+  struct database_multiple_documents_fields database_multiple_documents_fields;
+  int document_count = 0;  
 
   // define macros
-  #define COLLECTION_NAME "statistics_copy"
-  #define DATABASE_FIELDS "username|"
+  #define DATABASE_COLLECTION "statistics"
   #define DATA "{\"username\":\"XCASH\"}"
+
+  #define pointer_reset_all \
+  free(message); \
+  message = NULL; \
+  free(data2); \
+  data2 = NULL;
 
   #define GET_STATISTICS_ERROR \
   memset(result,0,strnlen(result,BUFFER_SIZE)); \
-  memcpy(result,"{\"Error\":\"Could not get statistics\"}",40); \
-  pointer_reset(data); \
+  memcpy(result,"{\"Error\":\"Could not get the statistics\"}",40); \
+  pointer_reset_database_array; \
+  pointer_reset_all; \
   return 400;
 
   #define pointer_reset_database_array \
-  for (count = 0; count < 11; count++) \
+  for (count = 0; count < 10; count++) \
   { \
     pointer_reset(database_data.item[count]); \
     pointer_reset(database_data.value[count]); \
+  } \
+  for (count = 0; count < document_count; count++) \
+  { \
+    for (counter = 0; counter < 5; counter++) \
+    { \
+      pointer_reset(database_multiple_documents_fields.item[count][counter]); \
+      pointer_reset(database_multiple_documents_fields.value[count][counter]); \
+    } \
+  }
+
+  // check if the memory needed was allocated on the heap successfully
+  if (message == NULL || data2 == NULL)
+  {
+    if (message != NULL)
+    {
+      pointer_reset(message);
+    }
+    if (data2 != NULL)
+    {
+      pointer_reset(data2);
+    }
+    GET_STATISTICS_ERROR
+  };
+  
+  // initialize the database_document_fields struct 
+  for (count = 0; count < 10; count++)
+  {
+    database_data.item[count] = (char*)calloc(100,sizeof(char));
+    database_data.value[count] = (char*)calloc(100,sizeof(char));
   }
   
-  // check if the memory needed was allocated on the heap successfully
-  if (data == NULL)
-  {
-    color_print("Could not allocate the variables on the heap","red");
-    exit(0);
-  }
+  document_count = count_all_documents_in_collection(DATABASE_NAME,"blocks_found",0);
 
-  // check if there is any data in the database that matches the message
-  if (count_documents_in_collection(DATABASE_NAME,COLLECTION_NAME,DATA,0) <= 0)
+  // initialize the database_multiple_documents_fields struct 
+  for (count = 0; count < document_count; count++)
   {
-    GET_STATISTICS_ERROR;
-  }
-
-  // initialize the database_document_fields struct 
-  for (count = 0; count < 11; count++)
-  {
-    // if this is the count that will hold the arrays we need to allocate more to them
-    if (count == 4 || count == 5 || count == 6 || count == 7)
+    for (counter = 0; counter < 5; counter++)
     {
-      // allocate 25 MB
-      database_data.item[count] = (char*)calloc(26214400,sizeof(char));
-      database_data.value[count] = (char*)calloc(26214400,sizeof(char));
+      database_multiple_documents_fields.item[count][counter] = (char*)calloc(RESERVE_PROOFS_LENGTH,sizeof(char));
+      database_multiple_documents_fields.value[count][counter] = (char*)calloc(RESERVE_PROOFS_LENGTH,sizeof(char));
     }
-    else
-    {
-      database_data.item[count] = (char*)calloc(BUFFER_SIZE,sizeof(char));
-      database_data.value[count] = (char*)calloc(BUFFER_SIZE,sizeof(char));
-    }    
   }
-  database_data.count = 0;
-  if (read_document_all_fields_from_collection(DATABASE_NAME,COLLECTION_NAME,DATA,&database_data,0) == 0)
+  database_multiple_documents_fields.document_count = 0;
+  database_multiple_documents_fields.database_fields_count = 0;
+  
+  if (read_document_all_fields_from_collection(DATABASE_NAME,DATABASE_COLLECTION,DATA,&database_data,0) == 0)
   {
     pointer_reset_database_array;
     GET_STATISTICS_ERROR;
   }
 
-  // add the fee, minimum amount and public address to the database array
-  memset(data,0,strnlen(data,BUFFER_SIZE));
-  sprintf(data,"%lf",fee);
-  memcpy(database_data.item[8],"fee",3);
-  memcpy(database_data.value[8],data,strnlen(data,BUFFER_SIZE));
-  memset(data,0,strnlen(data,BUFFER_SIZE));
-  sprintf(data,"%lld",minimum_amount);
-  memcpy(database_data.item[9],"minimum_amount",14);
-  memcpy(database_data.value[9],data,strnlen(data,BUFFER_SIZE));
-  memcpy(database_data.item[10],"public_address",14);
-  memcpy(database_data.value[10],xcash_wallet_public_address,XCASH_WALLET_LENGTH);
-  database_data.count += 3;
+  // add the total xcash to the database_document_fields struct  
+  if (read_multiple_documents_all_fields_from_collection(DATABASE_NAME,"blocks_found","",&database_multiple_documents_fields,1,document_count,0,"",0,0) == 0)
+  {
+    GET_STATISTICS_ERROR;
+  }
+
+  for (count = 0; count < document_count; count++)
+  {
+    sscanf(database_multiple_documents_fields.value[count][3], "%lld", &block_reward_number);
+    total_block_reward_number += block_reward_number;
+  }
+
+  memcpy(database_data.item[database_data.count],"total_xcash",11);
+  sprintf(database_data.value[database_data.count],"%lld",total_block_reward_number);
+  database_data.count++;  
+
+  // add the total payments to the database_document_fields struct 
+  total_block_reward_number = count_all_documents_in_collection(DATABASE_NAME,"public_addresses_payments",0); 
+  memcpy(database_data.item[database_data.count],"total_payments",14);
+  sprintf(database_data.value[database_data.count],"%lld",total_block_reward_number);
+  database_data.count++;
+
+  // add the total vote count to the database_document_fields struct
+  memcpy(message,"{\"public_address_voted_for\":\"",29);
+  memcpy(message+29,xcash_wallet_public_address,XCASH_WALLET_LENGTH);
+  memcpy(message+127,"\"}",2);
+
+  // check how many reserve proofs are for the public address
+  counter = 0;
+  for (count = 1; count <= 50; count++)
+  { 
+    memset(data2,0,strlen(data2));
+    memcpy(data2,"reserve_proofs_",15);
+    sprintf(data2+15,"%d",count);
+
+    counter += count_documents_in_collection(DATABASE_NAME,data2,message,0);
+  }
+
+  memcpy(database_data.item[database_data.count],"total_vote_count",16);
+  sprintf(database_data.value[database_data.count],"%d",counter);
+  database_data.count++;
+
+  // add the fee to the database_document_fields struct
+  memcpy(database_data.item[database_data.count],"fee",3);
+  sprintf(database_data.value[database_data.count],"%lf",fee);
+  database_data.count++;
+
+  // add the minimum amount to the database_document_fields struct
+  memcpy(database_data.item[database_data.count],"minimum_amount",14);
+  sprintf(database_data.value[database_data.count],"%lld",minimum_amount);
+  database_data.count++;
+
+  // add the public address to the database_document_fields struct
+  memcpy(database_data.item[database_data.count],"public_address",14);
+  memcpy(database_data.value[database_data.count],xcash_wallet_public_address,XCASH_WALLET_LENGTH);
+  database_data.count++;
 
   // create a json string out of the database array of item and value
-  if (create_json_data_from_database_document_array(&database_data,result,DATABASE_FIELDS) == 0)
+  if (create_json_data_from_database_document_array(&database_data,result,"username|") == 0)
   {
     pointer_reset_database_array;
     GET_STATISTICS_ERROR;
   }
-
-  // remove the quotes for the array
-  string_replace(result,"\"[","[");
-  string_replace(result,"]\"","]");
  
-  pointer_reset_database_array;  
-  pointer_reset(data);  
+  pointer_reset_database_array; 
+  pointer_reset_all;
   return 200;
 
-  #undef COLLECTION_NAME
-  #undef DATABASE_FIELDS
+  #undef DATABASE_COLLECTION
   #undef DATA
+  #undef pointer_reset_all
   #undef GET_STATISTICS_ERROR
+  #undef pointer_reset_database_array
+}
+
+
+
+/*
+-----------------------------------------------------------------------------------------------------------
+Name: get_blocks_found
+Description: Gets the blocks found
+Parameters:
+   result - The json data for the delegate voting information.
+Return: The http status
+-----------------------------------------------------------------------------------------------------------
+*/
+
+int get_blocks_found(char* result)
+{
+  // Variables
+  char* data;
+  char* data2 = (char*)calloc(BUFFER_SIZE,sizeof(char));  
+  char* data3 = (char*)calloc(BUFFER_SIZE,sizeof(char));  
+  char* message = (char*)calloc(BUFFER_SIZE,sizeof(char));  
+  int count = 0;
+  int counter = 0;
+  struct database_multiple_documents_fields database_data;
+  int document_count = 0;
+
+  // define macros
+  #define DATABASE_COLLECTION "blocks_found"
+  #define DATA "{\"username\":\"XCASH\"}"
+
+  // define macros
+  #define pointer_reset_all \
+  free(data2); \
+  data2 = NULL; \
+  free(data3); \
+  data3 = NULL; \
+  free(message); \
+  message = NULL;
+
+  #define GET_BLOCKS_FOUND_ERROR \
+  memset(result,0,strnlen(result,BUFFER_SIZE)); \
+  memcpy(result,"{\"Error\":\"Could not get voters list data\"}",42); \
+  pointer_reset_all; \
+  return 400;
+  
+  #define pointer_reset_database_array \
+  for (count = 0; count < document_count+1; count++) \
+  { \
+    for (counter = 0; counter < 5; counter++) \
+    { \
+      pointer_reset(database_data.item[count][counter]); \
+      pointer_reset(database_data.value[count][counter]); \
+    } \
+  }
+
+  // check if the memory needed was allocated on the heap successfully
+  if (data2 == NULL || data3 == NULL || message == NULL)
+  {
+    if (data2 != NULL)
+    {
+      pointer_reset(data2);
+    }
+    if (data3 != NULL)
+    {
+      pointer_reset(data3);
+    }
+    if (message != NULL)
+    {
+      pointer_reset(message);
+    }
+    GET_BLOCKS_FOUND_ERROR;
+  }
+
+  // create the message
+  memcpy(message,"{\"public_address_voted_for\":\"",29);
+  memcpy(message+29,xcash_wallet_public_address,XCASH_WALLET_LENGTH);
+  memcpy(message+127,"\"}",2);
+
+  // get how many documents are in the collection
+  document_count = count_all_documents_in_collection(DATABASE_NAME,DATABASE_COLLECTION,0);
+
+  // initialize the database_multiple_documents_fields struct 
+  for (count = 0; count < document_count+1; count++)
+  {
+    for (counter = 0; counter < 5; counter++)
+    {
+      database_data.item[count][counter] = (char*)calloc(RESERVE_PROOFS_LENGTH,sizeof(char));
+      database_data.value[count][counter] = (char*)calloc(RESERVE_PROOFS_LENGTH,sizeof(char));
+    }
+  }
+  database_data.document_count = 0;
+  database_data.database_fields_count = 0;
+
+  // get all of the blocks found
+  if (read_multiple_documents_all_fields_from_collection(DATABASE_NAME,DATABASE_COLLECTION,"",&database_data,1,document_count,0,"",0,0) == 0)
+  {
+    GET_BLOCKS_FOUND_ERROR;
+  }
+
+  // add the total_blocks and total_blocks_found to the database_document_fields struct
+  memset(data2,0,strlen(data2));
+  memset(data3,0,strlen(data3));
+  if (read_document_field_from_collection(DATABASE_NAME, "statistics", DATA, "total_blocks", data2, 0) == 0 || read_document_field_from_collection(DATABASE_NAME, "statistics", DATA, "total_blocks_found", data3, 0) == 0)
+  {
+    GET_BLOCKS_FOUND_ERROR;
+  }
+  memcpy(database_data.item[database_data.document_count][0],"total_blocks",12);
+  memcpy(database_data.value[database_data.document_count][0],data2,strnlen(data2,BUFFER_SIZE));
+  memcpy(database_data.item[database_data.document_count][1],"total_blocks_found",18);
+  memcpy(database_data.value[database_data.document_count][1],data2,strnlen(data2,BUFFER_SIZE));
+  
+  database_data.document_count++;
+
+  memset(result,0,strnlen(result,BUFFER_SIZE)); 
+  if (create_json_data_from_database_multiple_documents_array(&database_data,result,"") == 0)
+  {
+    GET_BLOCKS_FOUND_ERROR;
+  }  
+
+  pointer_reset_database_array;
+  pointer_reset_all;
+  return 200;
+
+  #undef DATABASE_COLLECTION
+  #undef DATA
+  #undef pointer_reset_all
+  #undef GET_BLOCKS_FOUND_ERROR
   #undef pointer_reset_database_array
 }
 
@@ -317,12 +511,12 @@ int get_public_address_information(struct MHD_Connection* connection, char* resu
   struct database_document_fields database_data;
 
   // define macros
-  #define COLLECTION_NAME "public_addresses"
+  #define DATABASE_COLLECTION "public_addresses"
 
   #define GET_PUBLIC_ADDRESS_INFORMATION_ERROR \
   memset(result,0,strnlen(result,BUFFER_SIZE)); \
   memcpy(result,"{\"Error\":\"Could not get public address information\"}",52); \
-  pointer_reset(data); \
+  pointer_reset(message); \
   return 400;
 
   #define pointer_reset_database_array \
@@ -359,7 +553,7 @@ int get_public_address_information(struct MHD_Connection* connection, char* resu
   memcpy(message+19+XCASH_WALLET_LENGTH,"\"}",2); 
   
   // check if there is any data in the database that matches the message
-  if (count_documents_in_collection(DATABASE_NAME,COLLECTION_NAME,message,0) <= 0)
+  if (count_documents_in_collection(DATABASE_NAME,DATABASE_COLLECTION,message,0) <= 0)
   {
     GET_PUBLIC_ADDRESS_INFORMATION_ERROR;
   }
@@ -372,7 +566,7 @@ int get_public_address_information(struct MHD_Connection* connection, char* resu
   }
   database_data.count = 0;
   
-  if (read_document_all_fields_from_collection(DATABASE_NAME,COLLECTION_NAME,message,&database_data,0) == 0)
+  if (read_document_all_fields_from_collection(DATABASE_NAME,DATABASE_COLLECTION,message,&database_data,0) == 0)
   {
     pointer_reset_database_array;
     GET_PUBLIC_ADDRESS_INFORMATION_ERROR;
@@ -389,8 +583,152 @@ int get_public_address_information(struct MHD_Connection* connection, char* resu
   pointer_reset(message);  
   return 200;
 
-  #undef COLLECTION_NAME
+  #undef DATABASE_COLLECTION
   #undef GET_PUBLIC_ADDRESS_INFORMATION_ERROR
+  #undef pointer_reset_database_array
+}
+
+
+
+/*
+-----------------------------------------------------------------------------------------------------------
+Name: get_voters_list
+Description: Gets the voters list
+Parameters:
+   result - The json data for the delegate voting information.
+Return: The http status
+-----------------------------------------------------------------------------------------------------------
+*/
+
+int get_voters_list(char* result)
+{
+  // Variables
+  char* data;
+  char* data2 = (char*)calloc(BUFFER_SIZE,sizeof(char));  
+  char* data3 = (char*)calloc(BUFFER_SIZE,sizeof(char));  
+  char* message = (char*)calloc(BUFFER_SIZE,sizeof(char));  
+  int count = 0;
+  int counter = 0;
+  struct database_multiple_documents_fields database_data;
+  int document_count = 0;
+
+  // define macros
+  #define DATABASE_COLLECTION "public_addresses_payments"
+
+  // define macros
+  #define pointer_reset_all \
+  free(data2); \
+  data2 = NULL; \
+  free(data3); \
+  data3 = NULL; \
+  free(message); \
+  message = NULL;
+
+  #define GET_VOTERS_LIST_ERROR \
+  memset(result,0,strnlen(result,BUFFER_SIZE)); \
+  memcpy(result,"{\"Error\":\"Could not get voters list data\"}",42); \
+  pointer_reset_all; \
+  return 400;
+  
+  #define pointer_reset_database_array \
+  for (count = 0; count < document_count; count++) \
+  { \
+    for (counter = 0; counter < 4; counter++) \
+    { \
+      pointer_reset(database_data.item[count][counter]); \
+      pointer_reset(database_data.value[count][counter]); \
+    } \
+  }
+
+  // check if the memory needed was allocated on the heap successfully
+  if (data2 == NULL || data3 == NULL || message == NULL)
+  {
+    if (data2 != NULL)
+    {
+      pointer_reset(data2);
+    }
+    if (data3 != NULL)
+    {
+      pointer_reset(data3);
+    }
+    if (message != NULL)
+    {
+      pointer_reset(message);
+    }
+    GET_VOTERS_LIST_ERROR;
+  }
+
+  // create the message
+  memcpy(message,"{\"public_address_voted_for\":\"",29);
+  memcpy(message+29,xcash_wallet_public_address,XCASH_WALLET_LENGTH);
+  memcpy(message+127,"\"}",2);
+
+  // check how many reserve proofs are for the public address
+  for (count = 1; count <= 50; count++)
+  { 
+    memset(data2,0,strlen(data2));
+    memcpy(data2,"reserve_proofs_",15);
+    sprintf(data2+15,"%d",count);
+
+    counter = count_documents_in_collection(DATABASE_NAME,data2,message,0);
+    if (counter < 0)
+    {
+      GET_VOTERS_LIST_ERROR;
+    }
+    document_count += counter;
+  }
+  if (document_count <= 0)
+  {
+    GET_VOTERS_LIST_ERROR;
+  }
+
+  // initialize the database_multiple_documents_fields struct 
+  for (count = 0; count < document_count; count++)
+  {
+    for (counter = 0; counter < 4; counter++)
+    {
+      database_data.item[count][counter] = (char*)calloc(RESERVE_PROOFS_LENGTH,sizeof(char));
+      database_data.value[count][counter] = (char*)calloc(RESERVE_PROOFS_LENGTH,sizeof(char));
+    }
+  }
+  database_data.document_count = 0;
+  database_data.database_fields_count = 0;
+
+  // create the message
+  memset(data3,0,strnlen(data3,BUFFER_SIZE));
+  memcpy(data3,"\"public_address_voted_for\" : \"",30);
+  memcpy(data3+30,xcash_wallet_public_address,XCASH_WALLET_LENGTH);
+  memcpy(data3+128,"\"",1);
+
+  // get all of the reserve proofs for the public address
+  for (count = 1; count <= 50; count++)
+  { 
+    memset(data2,0,strlen(data2));
+    memcpy(data2,"reserve_proofs_",15);
+    sprintf(data2+15,"%d",count);
+
+    counter = count_documents_in_collection(DATABASE_NAME,data2,message,0);
+    if (counter > 0)
+    {
+      if (read_multiple_documents_all_fields_from_collection(DATABASE_NAME,data2,data3,&database_data,1,counter,0,"",1,0) == 0)
+      {
+        GET_VOTERS_LIST_ERROR;
+      }
+    }
+  }
+  memset(result,0,strnlen(result,BUFFER_SIZE)); 
+  if (create_json_data_from_database_multiple_documents_array(&database_data,result,"") == 0)
+  {
+    GET_VOTERS_LIST_ERROR;
+  }  
+
+  pointer_reset_database_array;
+  pointer_reset_all;
+  return 200;
+
+  #undef DATABASE_COLLECTION
+  #undef pointer_reset_all
+  #undef GET_VOTERS_LIST_ERROR
   #undef pointer_reset_database_array
 }
 
@@ -457,10 +795,9 @@ int get_public_address_payment_information(struct MHD_Connection* connection, ch
   }
 
   // create the message
-  memcpy(message,"{\"",2);
-  memcpy(message+2,"public_address\":\"",17);
+  memcpy(message,"{\"public_address\":\"",19);
   memcpy(message+19,data,XCASH_WALLET_LENGTH);
-  memcpy(message+19+XCASH_WALLET_LENGTH,"\"}",2);
+  memcpy(message+117,"\"}",2);
 
   // check if there is any data in the database that matches the message  
   document_count = count_documents_in_collection(DATABASE_NAME,"public_addresses_payments",message,0);
@@ -483,12 +820,11 @@ int get_public_address_payment_information(struct MHD_Connection* connection, ch
 
   // create the message
   memset(message,0,strnlen(message,BUFFER_SIZE));
-  memcpy(message,"\"",1);
-  memcpy(message+1,"public_address\" : \"",19);
+  memcpy(message,"\"public_address\" : \"",20);
   memcpy(message+20,data,XCASH_WALLET_LENGTH);
   memcpy(message+20+XCASH_WALLET_LENGTH,"\"",1);
 
-  if (read_multiple_documents_all_fields_from_collection(DATABASE_NAME,DATABASE_COLLECTION,message,&database_data,1,document_count,0) == 0)
+  if (read_multiple_documents_all_fields_from_collection(DATABASE_NAME,DATABASE_COLLECTION,message,&database_data,1,document_count,0,"",0,0) == 0)
   {
     GET_PUBLIC_ADDRESS_PAYMENT_INFORMATION_ERROR;
   }
@@ -540,11 +876,6 @@ int create_server(void* cls,struct MHD_Connection* connection,const char* url,co
   size_t count = 0;
   FILE* file;
   
-
-  // define macros
-  #define INVALID_PARAMETERS "{\"Error\":\"An error hash occured\"}"
-  #define INVALID_PARAMETERS_LENGTH 33
-
   #define pointer_reset_all \
   free(data); \
   data = NULL; 
@@ -605,10 +936,6 @@ int create_server(void* cls,struct MHD_Connection* connection,const char* url,co
        pointer_reset_all;
        return MHD_YES;
      }
-     else if (connection_info->count > 0)
-     { 
-       
-     }
    }
 
 
@@ -620,10 +947,22 @@ int create_server(void* cls,struct MHD_Connection* connection,const char* url,co
        http_status = get_statistics(data);
        HTTP_RESULTS(data,"application/json",http_status);
      }
+     if (strncmp(url,"/getblocksfound",BUFFER_SIZE) == 0)
+     {
+       memset(data,0,strnlen(data,BUFFER_SIZE));
+       http_status = get_blocks_found(data);
+       HTTP_RESULTS(data,"application/json",http_status);
+     }
      else if (strncmp(url,"/getpublicaddressinformation",BUFFER_SIZE) == 0)
      { 
        memset(data,0,strnlen(data,BUFFER_SIZE));  
        http_status = get_public_address_information(connection,data);
+       HTTP_RESULTS(data,"application/json",http_status);
+     }     
+     else if (strncmp(url,"/getvoterslist",BUFFER_SIZE) == 0)
+     { 
+       memset(data,0,strnlen(data,BUFFER_SIZE));  
+       http_status = get_voters_list(data);
        HTTP_RESULTS(data,"application/json",http_status);
      }         
      else if (strncmp(url,"/getpublicaddresspaymentinformation",BUFFER_SIZE) == 0)
@@ -681,8 +1020,6 @@ int create_server(void* cls,struct MHD_Connection* connection,const char* url,co
      }  
    }
 
-  #undef INVALID_PARAMETERS
-  #undef INVALID_PARAMETERS_LENGTH 
   #undef pointer_reset_all   
   #undef HTTP_RESULTS
 }

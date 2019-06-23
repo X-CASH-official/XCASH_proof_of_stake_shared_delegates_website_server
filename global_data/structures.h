@@ -19,6 +19,12 @@ struct connection_info_struct {
     struct MHD_PostProcessor *post_result_settings;
 };
 
+// network_data_nodes_list
+  struct network_data_nodes_list {
+    char* network_data_nodes_public_address[NETWORK_DATA_NODES_AMOUNT]; // The block verifiers public address
+    char* network_data_nodes_IP_address[NETWORK_DATA_NODES_AMOUNT]; // The block verifiers IP address
+};
+
 // database struct
 struct database_document_fields {
     size_t count;

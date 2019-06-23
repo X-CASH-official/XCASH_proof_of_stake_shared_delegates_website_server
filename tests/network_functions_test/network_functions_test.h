@@ -7,5 +7,8 @@ Function prototypes
 -----------------------------------------------------------------------------------------------------------
 */
 
-int send_wallet_http_request_test();
+void network_daemon_test();
+void network_security_test();
+void network_wallet_test();
+int network_functions_test();
 #endif

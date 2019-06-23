@@ -30,7 +30,7 @@ Color available values:
 */
 
 #define color_print(string,color) \
-if (strncmp(color,"red",3) == 0) \
+if (memcmp(color,"red",3) == 0) \
 { \
   printf("\033[1;31m%s\033[0m\n",string); \
 } \
@@ -59,21 +59,6 @@ else \
   printf("%s",string); \
 }
 
-
-
-/*
------------------------------------------------------------------------------------------------------------
-Name: append_string
-Description: Appends strings securely to stop buffer overflows, and to always null terminate the string 
-Parameters:
-  string1 - char*
-  string2 - char*
-Return: Writes the correct code
------------------------------------------------------------------------------------------------------------
-*/
-
-#define append_string(string1,string2) \
-strncat(string1,string2,BUFFER_SIZE - strnlen(string1,BUFFER_SIZE) - 1);
 
 
 /*

@@ -1,5 +1,6 @@
-#ifndef STRING_FUNCTIONS_TEST_H_   /* Include guard */
-#define STRING_FUNCTIONS_TEST_H_
+#ifndef VRF_FUNCTIONS_H_   /* Include guard */
+#define VRF_FUNCTIONS_H_
+
 
 /*
 -----------------------------------------------------------------------------------------------------------
@@ -7,5 +8,5 @@ Function prototypes
 -----------------------------------------------------------------------------------------------------------
 */
 
-int string_functions_test();
+int create_random_VRF_keys(unsigned char *public_key, unsigned char *secret_key);
 #endif
