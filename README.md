@@ -4,7 +4,7 @@ This is the server for the [X-CASH Proof of Stake - Website](https://github.com/
 
 ## Installation
 
-This program will only run on a Linux/Unix OS at this time. We recommend installing this on a Ubuntu VPS/Server (16.04 or 18.04) with at least 1GB of RAM, for the best compatibility.
+This program will only run on a Linux/Unix OS at this time. We recommend installing this on a Ubuntu VPS/Server (16.04 or 18.04) with at least 2GB of RAM, for the best compatibility.
 
 You will also need to run an X-CASH Daemon and X-CASH RPC wallet on the server. You can either download the latest X-CASH [release](https://github.com/X-CASH-official/X-CASH/releases) or build from [source](https://github.com/X-CASH-official/X-CASH#compiling-x-cash-from-source)
 
