@@ -135,7 +135,7 @@ Replace MINIMUM_AMOUNT with the minimum amount a public address must have before
 Note: Payments are sent out daily at UTC 00:00
 
 We suggest you use the screen command to run the program in the background, this way you can still maintenance the server. To do this run  
-`screen -dmS xcash_proof_of_stake_shared_delegates_website_server ./xcash_proof_of_stake_shared_delegates_website_server --fee FEE -- minimum_amount MINIMUM_AMOUNT`
+`screen -dmS xcash_proof_of_stake_shared_delegates_website_server ./xcash_proof_of_stake_shared_delegates_website_server --fee FEE --minimum_amount MINIMUM_AMOUNT`
 
 To bring the screen from the bacground process to the active process run  
 `screen -x NAME_OF_BACKGROUNDS_SCREEN`
